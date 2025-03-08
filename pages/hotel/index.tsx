@@ -169,11 +169,7 @@ const router=useRouter();
       scrollContainer.scrollBy({ left: scrollContainer.clientWidth, behavior: 'smooth' });
     }
   };
-  useEffect(() => {
-    const myCity = axios.get('https://ipinfo.io').then((response: any) => {
-      SetmyCity({ city: response.data.city, Location: '', Region: '' });
-    });
-  }, []);
+
 
 
   console.log(myCity, 'mycity is', new Date());

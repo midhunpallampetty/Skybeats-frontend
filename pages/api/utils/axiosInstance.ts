@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 
 const axiosInstance = axios.create({
-  baseURL: "https://skybeats-frontend.vercel.app/api/",
+  baseURL: "http://localhost:3000/api/",
   withCredentials: true,
 });
 

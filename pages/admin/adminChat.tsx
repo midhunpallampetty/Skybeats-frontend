@@ -31,7 +31,11 @@ const AdminChat: React.FC = () => {
 
   // Initialize Socket.io connection
   useEffect(() => {
+<<<<<<< HEAD
     const socketConnection: Socket = io('https://www.skybeats.site'); // Replace with your backend Socket.io URL
+=======
+    const socketConnection: Socket = io('http://localhost:3300'); // Replace with your backend Socket.io URL
+>>>>>>> 97fc021 (test commit after ui animation)
     setSocket(socketConnection);
 
     // Identify as admin

@@ -1,198 +1,259 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import Cookies from 'js-cookie';
+import { motion } from 'framer-motion';
 import withAuthorization from '../hoc/withAuthorization';
 import adminAxios from '../api/utils/adminAxiosInstance';
+
+const AdminNavbar = dynamic(() => import('../components/AdminNavbar'), {
+  loading: () => (
+    <div className="h-16 bg-gray-800/50 animate-pulse rounded-lg"></div>
+  ),
+});
+
 const SuperAdminDashboard: React.FC = () => {
-    const [authorized, setAuthorized] = useState(false);
-    const [loading, setLoading] = useState(true); // Add a loading state
-    const AdminNavbar = dynamic(() => import('../components/AdminNavbar'));
-    const [role, setRole] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const usersPerPage = 12;
-    const router = useRouter();
-    const token = Cookies.get('adminaccessToken');
-console.log(role,'setRole')
-    const cardsData = [
-        {
-            id: 1,
-            name: 'Cargo Management',
-            email: 'cargo@example.com',
-            isBlocked: false,
-            imageUrl: 'https://projectcargo.com.tr/images/bg-img/col-bgimage-1.jpg',
-            Redirect: '/admin/receivedCargo'
-        },
-        {
-            id: 2,
-            name: 'Flight Management',
-            email: 'flight@example.com',
-            isBlocked: true,
-            imageUrl: 'https://blog.adobe.com/en/publish/2022/06/14/media_101523c4fd5175e08bd6ffbe8c509525cccba34cb.jpeg?width=1200&format=pjpg&optimize=medium',
-            Redirect: '/admin/flightBookings'
-        },
-        {
-            id: 3,
-            name: 'Hotel Management',
-            email: 'booking@example.com',
-            isBlocked: false,
-            imageUrl: 'https://www.hotelierindia.com/public/styles/full_img_sml/public/images/2020/02/14/shutterstock_1560097280.jpg?XO8Z_aDT',
-            Redirect: '/admin/bookingReport'
-        },
-        {
-            id: 4,
-            name: 'Career Management',
-            email: 'jobs@example.com',
-            isBlocked: true,
-            imageUrl: 'https://img.onmanorama.com/content/dam/mm/en/entertainment/interview/images/2016/Apr/7/jacobinte-swargarajyam.jpg.image.784.410.jpg',
-            Redirect: '/admin/receivedApplications'
-        },
-        {
-            id: 5,
-            name: 'Service',
-            email: 'offers@example.com',
-            isBlocked: false,
-            imageUrl: 'https://blog.infraspeak.com/wp-content/uploads/2021/08/Maintenance-as-a-Service.jpeg',
-            Redirect: '/admin/adminChat'
-        },
-        {
-            id: 6,
-            name: 'Menu',
-            email: 'offers@example.com',
-            isBlocked: false,
-            imageUrl: 'https://img.freepik.com/premium-photo/flight-attendant-serving-foods-plane_946209-4125.jpg',
-            Redirect:'/admin/menu'
-        },
-        {
-            id: 7,
-            name: 'Booking-Report',
-            email: 'offers@example.com',
-            isBlocked: false,
-            imageUrl: 'https://www.finereport.com/en/wp-content/uploads/2021/02/Investment-Dashboard-20210225160932-1024x576.png',
-            Redirect:'/admin/bookingChart'
-        },
-        {
-            id: 8,
-            name: 'Users',
-            email: 'offers@example.com',
-            isBlocked: false,
-            imageUrl: 'https://airline-datacenter.s3.ap-south-1.amazonaws.com/2240x1090-1-1560x760.jpg',
-            Redirect:'/admin/super_adminDashboard'
-        },   {
-            id: 9,
-            name: 'Recent Bookings',
-            email: 'offers@example.com',
-            isBlocked: false,
-            imageUrl: 'https://airline-datacenter.s3.ap-south-1.amazonaws.com/flight2.jpg',
-            Redirect:'/admin/flightBookings'
-        },
-    ];
+  const [authorized, setAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 12;
+  const router = useRouter();
+  const token = Cookies.get('adminaccessToken');
 
-    useEffect(() => {
-        if (!token) {
-            router.push('/admin/signin');
-            return;
-        }
+  const cardsData = [
+    {
+      id: 1,
+      name: 'Cargo Management',
+      description: 'Manage cargo operations and tracking',
+      imageUrl: 'https://projectcargo.com.tr/images/bg-img/col-bgimage-1.jpg',
+      Redirect: '/admin/receivedCargo',
+      icon: '📦'
+    },
+    {
+      id: 2,
+      name: 'Flight Management',
+      description: 'Control flight schedules and operations',
+      imageUrl: 'https://blog.adobe.com/en/publish/2022/06/14/media_101523c4fd5175e08bd6ffbe8c509525cccba34cb.jpeg?width=1200&format=pjpg&optimize=medium',
+      Redirect: '/admin/flightBookings',
+      icon: '✈️'
+    },
+    {
+      id: 3,
+      name: 'Hotel Management',
+      description: 'Oversee hotel bookings and services',
+      imageUrl: 'https://www.hotelierindia.com/public/styles/full_img_sml/public/images/2020/02/14/shutterstock_1560097280.jpg?XO8Z_aDT',
+      Redirect: '/admin/bookingReport',
+      icon: '🏨'
+    },
+    {
+      id: 4,
+      name: 'Career Management',
+      description: 'Handle job applications and recruitment',
+      imageUrl: 'https://img.onmanorama.com/content/dam/mm/en/entertainment/interview/images/2016/Apr/7/jacobinte-swargarajyam.jpg.image.784.410.jpg',
+      Redirect: '/admin/receivedApplications',
+      icon: '💼'
+    },
+    {
+      id: 5,
+      name: 'Service',
+      description: 'Manage customer service operations',
+      imageUrl: 'https://blog.infraspeak.com/wp-content/uploads/2021/08/Maintenance-as-a-Service.jpeg',
+      Redirect: '/admin/adminChat',
+      icon: '🛎️'
+    },
+    {
+      id: 6,
+      name: 'Menu',
+      description: 'Update and manage in-flight menu',
+      imageUrl: 'https://img.freepik.com/premium-photo/flight-attendant-serving-foods-plane_946209-4125.jpg',
+      Redirect: '/admin/menu',
+      icon: '🍽️'
+    },
+    {
+      id: 7,
+      name: 'Booking Report',
+      description: 'View booking analytics and reports',
+      imageUrl: 'https://www.finereport.com/en/wp-content/uploads/2021/02/Investment-Dashboard-20210225160932-1024x576.png',
+      Redirect: '/admin/bookingChart',
+      icon: '📊'
+    },
+    {
+      id: 8,
+      name: 'Users',
+      description: 'Manage user accounts and permissions',
+      imageUrl: 'https://v2cloud.com/app/uploads/2024/11/Blog-Hero-Image-2024-11-05T103202.382.png',
+      Redirect: '/admin/super_adminDashboard',
+      icon: '👥'
+    },
+    {
+      id: 9,
+      name: 'Recent Bookings',
+      description: 'View latest booking activities',
+      imageUrl: 'https://storiesflistgv2.blob.core.windows.net/stories/2019/08/Travel.jpg',
+      Redirect: '/admin/flightBookings',
+      icon: '🕒'
+    },
+  ];
 
-        (async () => {
-            try {
-                const response = await adminAxios.post('/tokenVerify', { token }, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
-                setRole(response.data);
-                                setAuthorized(true);
-            } catch (error) {
-                console.error('Error occurred while verifying token');
-            } finally {
-                setLoading(false); // Loading complete
-            }
-        })();
-    }, [token, router]);
-
-    const handlePageChange = (pageNumber: number) => {
-        setCurrentPage(pageNumber);
-    };
-
-    const currentUsers = cardsData.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center text-gray-500">
-                    <h1 className="text-2xl font-bold">Loading...</h1>
-                </div>
-            </div>
-        );
+  useEffect(() => {
+    if (!token) {
+      router.push('/admin/signin');
+      return;
     }
 
+    (async () => {
+      try {
+        const response = await adminAxios.post('/tokenVerify', { token }, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        setRole(response.data);
+        setAuthorized(true);
+      } catch (error) {
+        console.error('Error occurred while verifying token');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [token, router]);
+
+  const currentUsers = cardsData.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage
+  );
+
+  if (loading) {
     return (
-        <div className="relative w-full h-full flex justify-center items-center text-white">
-            <AdminNavbar />
-            <div
-                className="absolute top-0 left-0 w-full h-full mb-64 opacity-8 pointer-events-none bg-cover bg-no-repeat bg-center"
-                style={{ backgroundImage: 'url(/admin_bg.png)', opacity: 0.1 }}
-            />
-            <div className="relative z-10 xl:ml-[250px] xl:w-[1200px] md:w-[800px] sm:w-full">
-                <div className="p-4 mt-[200px]">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-10 mb-28">
-                        {authorized ? (
-                            currentUsers.map((user, index) => (
-                                <button
-                                    key={index}
-                                    className={`max-w-sm bg-transparent border-4 ${(
-                                        (role !== 'hoteladmin' && user.name === 'Hotel Management') ||
-                                        (role !== 'hradmin' && user.name === 'Career Management') ||
-                                        (role !== 'flightoperator' && user.name === 'Flight Management') ||
-                                        (role !== 'cargomanager' && user.name === 'Cargo Management') ||
-                                        (role !== 'hoteladmin' && user.name === 'Menu') ||
-                                        (role !== 'flightoperator' && user.name === 'Booking-Report') ||
-                                        (role !== 'flightoperator' && user.name === 'Recent Bookings')
-                                    )
-                                        ? 'border-gray-400 cursor-not-allowed opacity-50'
-                                        : 'border-gray-600/60 cursor-pointer'
-                                    } rounded-lg shadow-lg relative focus:outline-none`}
-                                    onClick={() => {
-                                        if (user.Redirect && !(
-                                            (role !== 'hoteladmin' && user.name === 'Hotel Management') ||
-                                            (role !== 'hradmin' && user.name === 'Career Management') ||
-                                            (role !== 'flightoperator' && user.name === 'Flight Management') ||
-                                            (role !== 'cargomanager' && user.name === 'Cargo Management')
-                                        )) {
-                                            router.push(user.Redirect);
-                                        }
-                                    }}
-                                    disabled={
-                                        (role !== 'hoteladmin' && user.name === 'Hotel Management') ||
-                                        (role !== 'hradmin' && user.name === 'Career Management')
-                                    }
-                                >
-                                    <div className="relative">
-                                        <img
-                                            className="w-full h-48 rounded-lg"
-                                            src={user.imageUrl}
-                                            alt="Background image"
-                                        />
-                                        <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col justify-center items-center text-center text-white">
-                                            <h3 className="text-3xl font-bold">{user.name}</h3>
-                                        </div>
-                                    </div>
-                                </button>
-                            ))
-                        ) : (
-                            <div className="flex items-center justify-center min-h-screen">
-                                <div className="text-center text-blue-900/5">
-                                    <h1 className="text-4xl font-bold">Access Denied</h1>
-                                    <p className="mt-4 text-lg">You do not have permission to access this page.</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="space-y-4">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-white text-lg font-medium">Loading dashboard...</p>
         </div>
+      </div>
     );
+  }
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    },
+    hover: {
+      scale: 1.05,
+      transition: {
+        type: "spring",
+        stiffness: 400,
+        damping: 10
+      }
+    }
+  };
+
+  return (
+    <>
+         <AdminNavbar />
+
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+      
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="container mx-auto px-4 py-8 "
+      >
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500"
+        >
+          Admin Dashboard
+        </motion.h1>
+
+        {authorized ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
+            {currentUsers.map((card, index) => {
+              const isDisabled = (
+                (role !== 'hoteladmin' && card.name === 'Hotel Management') ||
+                (role !== 'hradmin' && card.name === 'Career Management') ||
+                (role !== 'flightoperator' && card.name === 'Flight Management') ||
+                (role !== 'cargomanager' && card.name === 'Cargo Management') ||
+                (role !== 'hoteladmin' && card.name === 'Menu') ||
+                (role !== 'flightoperator' && card.name === 'Booking Report') ||
+                (role !== 'flightoperator' && card.name === 'Recent Bookings')
+              );
+
+              return (
+                <motion.div
+                  key={card.id}
+                  variants={cardVariants}
+                  whileHover={!isDisabled ? "hover" : {}}
+                  className={`relative overflow-hidden rounded-xl ${
+                    isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <motion.button
+                    className="w-full h-full"
+                    onClick={() => !isDisabled && router.push(card.Redirect)}
+                    disabled={isDisabled}
+                  >
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-75"></div>
+                      <img
+                        src={card.imageUrl}
+                        alt={card.name}
+                        className="w-full h-64 object-cover rounded-xl"
+                      />
+                      <div className="absolute inset-0 flex flex-col justify-end p-6 transform transition-transform duration-300 group-hover:translate-y-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className="text-2xl">{card.icon}</span>
+                          <h3 className="text-2xl font-bold">{card.name}</h3>
+                        </div>
+                        <p className="text-gray-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          {card.description}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex items-center justify-center min-h-[60vh]"
+          >
+            <div className="text-center bg-red-500/10 p-8 rounded-lg backdrop-blur-sm">
+              <h1 className="text-4xl font-bold text-red-500 mb-4">Access Denied</h1>
+              <p className="text-lg text-gray-300">
+                You do not have permission to access this page.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+    </>
+  );
 };
 
 export default withAuthorization(SuperAdminDashboard, 'superadmin');

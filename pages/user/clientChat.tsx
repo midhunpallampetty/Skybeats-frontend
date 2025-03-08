@@ -1,244 +1,347 @@
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { Socket } from 'socket.io-client';
-import io from 'socket.io-client';
-import dynamic from 'next/dynamic';
-import EmojiPicker from "emoji-picker-react";
+"use client"
+
+import { useEffect, useState, useRef } from "react"
+import type { Socket } from "socket.io-client"
+import io from "socket.io-client"
+import EmojiPicker from "emoji-picker-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Send, Home, Headphones, Smile, X, Menu, User, LogOut } from "lucide-react"
+import dynamic from "next/dynamic"
 
 interface Message {
-  id: number;
-  message: string;
-  from: 'admin' | 'user';
+  id: number
+  message: string
+  from: "admin" | "user"
+  timestamp: Date
 }
 
-// Dynamically import components to prevent SSR issues
-const UserNavbar = dynamic(() => import('../components/Navbar'), { ssr: false });
+const Navbar = dynamic(() => import('../components/Navbar'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-16 bg-gray-800 fixed top-0 left-0 z-50" />
+  ),
+})
 
-const UserChat: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+const UserChat = () => {
+  const [isLoading, setIsLoading] = useState(true)
+  const [message, setMessage] = useState<string>("")
+  const [messages, setMessages] = useState<Message[]>([])
+  const [socket, setSocket] = useState<Socket | null>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsLoading(false); // Simulate loading time
-    }, 5000); // 2 seconds delay for loading
+      setIsLoading(false)
+    }, 5000)
 
-    return () => clearTimeout(timer); // Cleanup the timer
-  }, []);
-  // Initialize Socket.io connection
+    return () => clearTimeout(timer)
+  }, [])
+
   useEffect(() => {
+<<<<<<< HEAD
     const socketConnection: Socket = io('https://www.skybeats.site'); // Replace with your backend Socket.io URL
     setSocket(socketConnection);
+=======
+    try {
+      const socketConnection: Socket = io("http://localhost:3300")
+      setSocket(socketConnection)
+>>>>>>> 97fc021 (test commit after ui animation)
 
-    // Identify as user
-    socketConnection.emit('identify', 'user');
+      socketConnection.emit("identify", "user")
 
-    // Listen for messages from admin
-    socketConnection.on('privateMessageFromAdmin', (data: { message: string }) => {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { id: prevMessages.length + 1, message: data.message, from: 'admin' },
-      ]);
-    });
-   
-    // Clean up the connection when the component is unmounted
-    return () => {
-      socketConnection.disconnect();
-    };
-  }, []);
+      socketConnection.on("privateMessageFromAdmin", (data: { message: string }) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            id: prevMessages.length + 1,
+            message: data.message,
+            from: "admin",
+            timestamp: new Date(),
+          },
+        ])
+      })
+
+      return () => {
+        socketConnection.disconnect()
+      }
+    } catch (error) {
+      console.error("Socket connection error:", error)
+    }
+  }, [])
+
   const handleEmojiClick = (emojiObject: any) => {
-    // Append the emoji to the current message
-    setMessage(prevMessage => prevMessage + emojiObject.emoji);
-  };
-  
-  
-  // Function to send a message
+    setMessage((prevMessage) => prevMessage + emojiObject.emoji)
+  }
+
   const sendMessage = () => {
     if (message.trim()) {
-      // Send the message (including any emojis) to the admin via socket
-      socket?.emit('privateMessageToAdmin', { message });
-  
-      // Update the message list in the user chat UI, including emojis
-      setMessages([...messages, { id: messages.length + 1, message, from: 'user' }]);
-  
-      // Clear the input field after sending
-      setMessage('');
+      socket?.emit("privateMessageToAdmin", { message })
+      setMessages([
+        ...messages,
+        {
+          id: messages.length + 1,
+          message,
+          from: "user",
+          timestamp: new Date(),
+        },
+      ])
+      setMessage("")
+      setShowEmojiPicker(false)
     }
-  };
-  
+  }
 
-  // Inline styles for loading screen and animation
-  const loadingScreenStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    backgroundColor: '#1a2d45', // Dark background for loading screen
-  };
-
-  const loadingBarStyle = {
-    width: '100px',
-    height: '5px',
-    backgroundColor: '#0c2336', // Bar background
-    marginTop: '10px',
-    borderRadius: '3px',
-    overflow: 'hidden',
-  };
-
-  const loadingBarFillStyle = {
-    width: '0',
-    height: '100%',
-    backgroundColor: '#0073b1', // Loading bar fill color
-    animation: 'load 3s ease-in-out infinite',
-  };
-
-  // Keyframe animation using JavaScript
-  const loadingKeyframes = `
-    @keyframes load {
-      0% { width: 0; }
-      50% { width: 100%; }
-      100% { width: 0; }
-    }
-  `;
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
 
   return (
-    <>
-    <style>
-      {loadingKeyframes}
-    </style>
-    {isLoading ? (
-      <div style={loadingScreenStyle}>
-        <Image
-          src="/chat-icon.png" // Replace with your logo path
-          alt="Logo"
-          width={100}
-          height={100}
-        />
-        <p className='text-white font-extrabold font-sans text-xl'>Loading Customer Support Please Wait......</p>
-        <div style={loadingBarStyle}>
-          <div style={loadingBarFillStyle}></div>
-        </div>
-      </div>
-    ) : (
-    <>
-      <UserNavbar />
-      <div className="flex w-full h-screen bg-gray-100 rounded-lg">
-        {/* Sidebar */}
-        <div className="w-1/4 bg-blue-950 shadow-inner shadow-white text-white p-4">
-          {/* Profile & Navigation */}
-          <div className="flex items-center space-x-4 mb-8">
-            <img
-              src="https://easy-peasy.ai/cdn-cgi/image/quality=80,format=auto,width=700/https://fdczvxmwwjwpwbeeqcth.supabase.co/storage/v1/object/public/images/d7462d01-eaa6-4971-9026-28d1385204c4/7e6c08d8-8c4e-4242-a2e8-356928a0ab3a.png"
-              alt="Profile"
-              className="w-12 h-12 rounded-full"
-            />
-            <h2 className="font-bold">Mark Norway</h2>
-          </div>
-          <nav>
-            <ul className="space-y-4">
-              <li className="flex justify-center items-center hover:bg-blue-800/25 hover:rounded-lg hover:shadow-white/15 hover:shadow-inner font-extrabold p-2 text-2xl rounded">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" fill="white" width="25">
-                  <path d="M575.8 255.5c0 18-15 32.1-32 32.1l-32 0 .7 160.2c0 2.7-.2 5.4-.5 8.1l0 16.2c0 22.1-17.9 40-40 40l-16 0c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1L416 512l-24 0c-22.1 0-40-17.9-40-40l0-24 0-64c0-17.7-14.3-32-32-32l-64 0c-17.7 0-32 14.3-32 32l0 64 0 24c0 22.1-17.9 40-40 40l-24 0-31.9 0c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2l-16 0c-22.1 0-40-17.9-40-40l0-112c0-.9 0-1.9 .1-2.8l0-69.7-32 0c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z" />
-                </svg>
-                &nbsp;Home
-              </li>
-              <li className="flex justify-center items-center hover:bg-blue-800/25 hover:rounded-lg hover:shadow-white/15 hover:shadow-inner font-extrabold p-2 text-2xl rounded">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="white" width="25">
-                  <path d="M256 48C141.1 48 48 141.1 48 256l0 40c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-40C0 114.6 114.6 0 256 0S512 114.6 512 256l0 144.1c0 48.6-39.4 88-88.1 88L313.6 488c-8.3 14.3-23.8 24-41.6 24l-32 0c-26.5 0-48-21.5-48-48s21.5-48 48-48l32 0c17.8 0 33.3 9.7 41.6 24l110.4 .1c22.1 0 40-17.9 40-40L464 256c0-114.9-93.1-208-208-208zM144 208l16 0c17.7 0 32 14.3 32 32l0 112c0 17.7-14.3 32-32 32l-16 0c-35.3 0-64-28.7-64-64l0-48c0-35.3 28.7-64 64-64zm224 0c35.3 0 64 28.7 64 64l0 48c0 35.3-28.7 64-64 64l-16 0c-17.7 0-32-14.3-32-32l0-112c0-17.7 14.3-32 32-32l16 0z" />
-                </svg>
-                &nbsp; Chat Bot
-              </li>
-            </ul>
-          </nav>
-        </div>
-
-        {/* Chat Section */}
-        <div className="flex-grow flex">
-          {/* Chat List */}
-          <div className="w-1/3 bg-white shadow-blue-950 shadow-inner border-r">
-            <div className="p-4 border-b">
-              <h3 className="text-xl font-bold">Chats</h3>
-            </div>
-            <ul className="space-y-4 p-4">
-              {['Client'].map((user, index) => (
-                <li key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
-                  <img
-                    src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/cuterobot_0000.jpg"
-                    alt={user}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <h4 className="font-bold">{user}</h4>
-                    <p className="text-sm text-gray-500">This is a short message...</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Chat Window */}
-          <div className="w-2/3 bg-gray-50 flex flex-col relative">
-            {/* Chat Header */}
-            <div className="bg-white border-b p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Chat with Elmer Murphy</h2>
-            </div>
-
-            {/* Messages List */}
-            <div className="flex-grow p-4 overflow-y-auto space-y-2 flex flex-col">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`p-2 rounded-l-lg rounded-r-sm text-xl font-semibold shadow-inner flex items-center justify-center ${msg.from === 'user'
-                    ? 'bg-gradient-to-r from-[#4a00e0] to-[#8e2de2] text-white self-end max-w-xs'
-                    : 'bg-gray-200 text-black self-start max-w-xs'
-                    }`}
-                >
-                  {msg.message}
-                </div>
-              ))}
-            </div>
-
-            {/* Message Input */}
-            <div className="border-t p-4 flex items-center">
-              <div className="relative">
-                {showEmojiPicker && (
-                  <div className="absolute bottom-full mb-2 left-0">
-                    <EmojiPicker onEmojiClick={handleEmojiClick} />
-                  </div>
-                )}
-                <button
-                  className="p-2 rounded-md border bg-gray-200"
-                  onClick={() => setShowEmojiPicker((prev) => !prev)}
-                >
-                  😀
-                </button>
+    <div className="dark">
+      <AnimatePresence mode="wait">
+        {isLoading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col justify-center items-center h-screen bg-gray-900"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="w-24 h-24 bg-gradient-to-r from-purple-600 to-blue-500 rounded-full flex items-center justify-center mb-6">
+                <Headphones className="w-12 h-12 text-white" />
               </div>
-              <input 
-                type="text"
-                placeholder="Type a message"
-                value={message}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    sendMessage(); 
-                  }
-                }}
-                onChange={(e) => setMessage(e.target.value)}
-                className="flex-grow p-2 border text-black font-extrabold rounded-lg mx-2"
-              />
-              <button onClick={sendMessage} className="p-2 bg-blue-600 text-white rounded-lg">
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-      )}
-    </>
-  );
-};
+            </motion.div>
 
-export default UserChat;
+            <motion.p
+              className="text-white font-extrabold font-sans text-xl mb-6"
+              animate={{
+                opacity: [0.5, 1, 0.5],
+                transition: { duration: 2, repeat: Number.POSITIVE_INFINITY },
+              }}
+            >
+              Loading Customer Support Please Wait...
+            </motion.p>
+
+            <motion.div className="w-64 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-purple-600 to-blue-500"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{
+                  duration: 3,
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatType: "reverse",
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="min-h-screen bg-gray-900 text-white"
+          >
+            {/* Optimized Navbar Container */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <Navbar />
+            </motion.div>
+
+            <div className="flex w-full h-[calc(100vh-64px)] bg-gray-900 rounded-lg mt-20">
+              {/* Sidebar */}
+              <motion.div
+                className="w-1/4 bg-gray-800 shadow-lg p-4"
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex items-center space-x-4 mb-8 p-2 bg-gray-700/50 rounded-lg">
+                  <motion.div
+                    className="w-12 h-12 rounded-full border-2 border-purple-500 bg-gray-700 flex items-center justify-center"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <User className="w-6 h-6 text-purple-300" />
+                  </motion.div>
+                  <h2 className="font-bold text-lg">Mark Norway</h2>
+                </div>
+
+                <nav>
+                  <ul className="space-y-3">
+                    <motion.li
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="flex items-center p-3 rounded-lg bg-gradient-to-r from-purple-800/50 to-blue-800/50 hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-md"
+                    >
+                      <Home className="w-5 h-5 mr-3" />
+                      <span className="font-bold">Home</span>
+                    </motion.li>
+
+                    <motion.li
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="flex items-center p-3 rounded-lg bg-gradient-to-r from-purple-800/30 to-blue-800/30 hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-md"
+                    >
+                      <Headphones className="w-5 h-5 mr-3" />
+                      <span className="font-bold">Chat Bot</span>
+                    </motion.li>
+                  </ul>
+                </nav>
+              </motion.div>
+
+              {/* Chat Section */}
+              <div className="flex-grow flex">
+                {/* Chat List */}
+                <motion.div
+                  className="w-1/3 bg-gray-800 border-r border-gray-700"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  <div className="p-4 border-b border-gray-700">
+                    <h3 className="text-xl font-bold text-purple-300">Chats</h3>
+                  </div>
+                  <ul className="space-y-2 p-4">
+                    <motion.li
+                      className="flex items-center space-x-3 p-3 rounded-lg bg-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors duration-200"
+                      whileHover={{ x: 5 }}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.3, duration: 0.5 }}
+                    >
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full border border-purple-500 bg-gray-700 flex items-center justify-center">
+                          <User className="w-5 h-5 text-purple-300" />
+                        </div>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white">Client</h4>
+                        <p className="text-sm text-gray-400">This is a short message...</p>
+                      </div>
+                    </motion.li>
+                  </ul>
+                </motion.div>
+
+                {/* Chat Window */}
+                <motion.div
+                  className="w-2/3 bg-gray-900 flex flex-col relative"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <div className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-white">Chat with Admin</h2>
+                    <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Online</span>
+                  </div>
+
+                  <div className="flex-grow p-4 overflow-y-auto space-y-4 flex flex-col">
+                    <AnimatePresence>
+                      {messages.map((msg) => (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ type: "spring", damping: 15 }}
+                          className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}
+                        >
+                          <div className={`relative max-w-xs ${msg.from === "user" ? "order-1" : "order-2"}`}>
+                            <div
+                              className={`p-3 rounded-2xl shadow-lg ${
+                                msg.from === "user"
+                                  ? "bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-br-none"
+                                  : "bg-gray-800 text-white rounded-bl-none"
+                              }`}
+                            >
+                              <p className="font-medium">{msg.message}</p>
+                              <span className="text-xs opacity-70 block text-right mt-1">
+                                {formatTime(msg.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="border-t border-gray-800 p-4">
+                    <div className="relative flex items-center bg-gray-800 rounded-lg p-1">
+                      <AnimatePresence>
+                        {showEmojiPicker && (
+                          <motion.div
+                            className="absolute bottom-full mb-2 left-0 z-10"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                          >
+                            <div className="relative">
+                              <button
+                                className="absolute top-2 right-2 p-1 bg-gray-700 rounded-full text-white z-10"
+                                onClick={() => setShowEmojiPicker(false)}
+                              >
+                                <X size={16} />
+                              </button>
+                              <EmojiPicker onEmojiClick={handleEmojiClick} theme="dark" />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <motion.button
+                        className="p-2 rounded-md text-gray-300 hover:text-white"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowEmojiPicker((prev) => !prev)}
+                      >
+                        <Smile size={20} />
+                      </motion.button>
+
+                      <input
+                        type="text"
+                        placeholder="Type a message"
+                        value={message}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            sendMessage()
+                          }
+                        }}
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="flex-grow p-2 bg-transparent text-white font-medium focus:outline-none"
+                      />
+
+                      <motion.button
+                        onClick={sendMessage}
+                        className="p-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-500 text-white"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        disabled={!message.trim()}
+                      >
+                        <Send size={18} />
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+export default UserChat

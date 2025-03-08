@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight } from '@/redux/slices/returnFlightSlice';
 import { useDispatch, useSelector } from 'react-redux';
+import LoadingSpinner from '@/pages/components/LoadingSpinner';
 import Cookies from 'js-cookie';
 export default function ThanksPayment() {
   const router = useRouter();
@@ -31,9 +32,12 @@ export default function ThanksPayment() {
   return (
     <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen">
       {loading ? (
+        
         <div className="flex flex-col items-center">
-          <div className="spinner mb-4"></div>
-          <p className="text-xl font-semibold text-blue-600">Processing your booking...</p>
+          
+          
+          <LoadingSpinner/>
+          <p className="text-xl font-semibold text-blue-600 mt-36">Processing your booking...</p>
         </div>
       ) : (
         <div className="max-w-md mx-auto bg-white shadow-xl rounded-lg overflow-hidden text-center p-8">

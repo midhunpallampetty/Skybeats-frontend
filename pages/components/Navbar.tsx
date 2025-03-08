@@ -5,42 +5,31 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, ChevronDown, LogOut, User } from 'lucide-react';
 
-export default function Component() {
+export default function Navbar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSubmenu, setMobileSubmenu] = useState<string | null>(null);
-  const token = Cookies.get('jwtToken');
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [submenuTimer, setSubmenuTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
-console.log("accessToken",accessToken,"refreshToken",refreshToken)
-    if (accessToken) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
+    setIsLoggedIn(!!accessToken);
   }, []);
 
   const handleLogout = async () => {
-    // Remove the cookies accessible by JavaScript
     Cookies.remove('accessToken');
     Cookies.remove('refreshToken');
-
     Cookies.remove('userId');
- 
-    // Call the API to remove the HttpOnly refresh token cookie
-    
-  
-   
-      // If the response is successful, redirect the user
-      router.push('/user/signin');
-    
+    router.push('/user/signin');
   };
-console.log(isLoggedIn)
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -48,6 +37,23 @@ console.log(isLoggedIn)
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
     setMobileSubmenu(null);
+  };
+
+  const handleMouseEnter = (itemName: string) => {
+    if (submenuTimer) {
+      clearTimeout(submenuTimer);
+      setSubmenuTimer(null);
+    }
+    setHoveredItem(itemName);
+  };
+
+  const handleMouseLeave = (itemName: string) => {
+    const timer = setTimeout(() => {
+      if (hoveredItem === itemName) {
+        setHoveredItem(null);
+      }
+    }, 300); // 300ms delay before hiding submenu
+    setSubmenuTimer(timer);
   };
 
   const toggleMobileSubmenu = (menu: string) => {
@@ -58,19 +64,21 @@ console.log(isLoggedIn)
     {
       name: 'Flights',
       href: '/user/flight/listflights',
+      icon: '✈️',
     },
     {
       name: 'Cargo',
       href: '/',
+      icon: '📦',
       submenu: [
         { name: 'Request Cargo', href: '/user/cargo/requestCargo' },
-        
         { name: 'All Cargos', href: '/user/cargo/allCargoRequests' },
       ],
     },
     {
       name: 'Hotels',
       href: '/hotel',
+      icon: '🏨',
       submenu: [
         { name: 'Book Hotels', href: '/hotel' },
         { name: 'Booking History', href: '/hotel/hotelHistory' },
@@ -79,118 +87,304 @@ console.log(isLoggedIn)
     {
       name: 'Careers',
       href: '/user/careers',
-      submenu: [{ name: 'Job Openings', href: '/user/careers' },{ name: 'Applied Jobs', href: '/user/careers/appliedJobs' }],
+      icon: '💼',
+      submenu: [
+        { name: 'Job Openings', href: '/user/careers' },
+        { name: 'Applied Jobs', href: '/user/careers/appliedJobs' },
+      ],
     },
     {
       name: 'Contact Us',
       href: '/contact',
+      icon: '📞',
     },
     {
       name: 'Chat Support',
       href: '/user/clientChat',
+      icon: '💬',
     },
   ];
 
+  const navVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.5,
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
+  const submenuVariants = {
+    hidden: { opacity: 0, y: -10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.2 }
+    },
+    exit: { 
+      opacity: 0, 
+      y: -10,
+      transition: { duration: 0.2 }
+    }
+  };
+
   return (
-    <nav className="bg-blue-950 shadow-white/40 shadow-inner fixed w-full z-20 top-0 start-0">
+    <motion.nav 
+      initial="hidden"
+      animate="visible"
+      variants={navVariants}
+      className="bg-gradient-to-r from-blue-950 to-black shadow-lg fixed w-full z-20 top-0 start-0 border-b border-none shadow-black"
+    >
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
-          <Image src="/logo_airline.png" width={140} height={12} className="h-8" alt="Airline Logo" />
-        </Link>
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
+            <Image src="/logo_airline.png" width={140} height={12} className="h-8" alt="Airline Logo" />
+          </Link>
+        </motion.div>
+
         <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
-          {isLoggedIn ? (
-            <button
-              onClick={handleLogout}
-              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
-            >
-              Log Out
-            </button>
-          ) : (
-            <Link href="/user/signin">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            {isLoggedIn ? (
               <button
-                type="button"
-                className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
               >
-                Sign In
+                <LogOut size={16} />
+                Log Out
               </button>
-            </Link>
-          )}
-          <button
+            ) : (
+              <Link href="/user/signin">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
+                >
+                  <User size={16} />
+                  Sign In
+                </button>
+              </Link>
+            )}
+          </motion.div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={toggleMobileMenu}
             type="button"
-            className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-white rounded-lg md:hidden hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
             aria-controls="navbar-sticky"
             aria-expanded={mobileMenuOpen}
           >
-            <span className="sr-only">Open main menu</span>
-            <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
-              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 1h15M1 7h15M1 13h15" />
-            </svg>
-          </button>
+            <span className="sr-only">Toggle menu</span>
+            {mobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
+          </motion.button>
         </div>
-        <div
-          className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${
-            mobileMenuOpen ? 'block' : 'hidden'
-          }`}
-          id="navbar-sticky"
-        >
-          <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-blue-700 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-transparent">
-            {menuItems.map((item) => (
-              <li key={item.name} className="relative group">
-                <div className="flex items-center">
-                  <Link
-                    href={item.href}
-                    className="block py-2 px-3 text-white rounded hover:bg-blue-900 md:hover:bg-transparent md:hover:text-blue-700 md:p-0"
-                    onClick={closeMobileMenu}
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="items-center justify-between w-full md:flex md:w-auto md:order-1"
+              id="navbar-sticky"
+            >
+              <motion.ul 
+                variants={navVariants}
+                className="flex flex-col p-4 md:p-0 mt-4 font-medium rounded-lg md:flex-row md:space-x-8 md:mt-0 md:border-0 bg-gradient-to-r from-blue-900 to-indigo-900 md:bg-transparent"
+              >
+                {menuItems.map((item) => (
+                  <motion.li 
+                    key={item.name} 
+                    variants={itemVariants}
+                    className="relative group"
+                    onMouseEnter={() => handleMouseEnter(item.name)}
+                    onMouseLeave={() => handleMouseLeave(item.name)}
                   >
-                    {item.name}
-                  </Link>
-                  {item.submenu && (
-                    <button
-                      className="ml-2 text-white md:hidden"
-                      onClick={() => toggleMobileSubmenu(item.name)}
-                    >
-                      ▼
-                    </button>
-                  )}
-                </div>
-                {item.submenu && (
-                  <ul
-                    className={`${
-                      mobileSubmenu === item.name ? 'block' : 'hidden'
-                    } mt-2 space-y-2 bg-white border rounded-md shadow-lg md:absolute md:left-0 md:group-hover:block md:w-48`}
-                  >
-                    {item.submenu.map((subitem) => (
-                      <li key={subitem.name}>
+                    <div className="flex items-center">
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full"
+                      >
                         <Link
-                          href={subitem.href}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          href={item.href}
+                          className="flex items-center gap-2 py-2 px-3 text-white rounded hover:bg-blue-800 md:hover:bg-transparent md:hover:text-blue-300 md:p-0 transition-colors duration-200"
                           onClick={closeMobileMenu}
                         >
-                          {subitem.name}
+                          <span>{item.icon}</span>
+                          {item.name}
+                          {item.submenu && (
+                            <ChevronDown 
+                              size={16} 
+                              className={`transition-transform duration-200 ${hoveredItem === item.name ? 'rotate-180' : ''}`}
+                            />
+                          )}
                         </Link>
-                      </li>
-                    ))}
-                  </ul>
+                      </motion.div>
+                    </div>
+
+                    {item.submenu && (
+                      <AnimatePresence>
+                        {hoveredItem === item.name && (
+                          <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            variants={submenuVariants}
+                            className="absolute left-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl"
+                            onMouseEnter={() => handleMouseEnter(item.name)}
+                            onMouseLeave={() => handleMouseLeave(item.name)}
+                          >
+                            {item.submenu.map((subitem) => (
+                              <motion.div
+                                key={subitem.name}
+                                whileHover={{ backgroundColor: '#f3f4f6' }}
+                                className="relative"
+                              >
+                                <Link
+                                  href={subitem.href}
+                                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                                  onClick={closeMobileMenu}
+                                >
+                                  {subitem.name}
+                                </Link>
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                  </motion.li>
+                ))}
+
+                <motion.li 
+                  variants={itemVariants}
+                  className="relative group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link
+                    href="/user/profile"
+                    className="block py-2 px-3 text-white rounded-full overflow-hidden hover:ring-2 hover:ring-blue-300 transition-all duration-200"
+                    onClick={closeMobileMenu}
+                  >
+                    <motion.img
+                      whileHover={{ scale: 1.1 }}
+                      className="w-8 h-8 rounded-full"
+                      src="https://miro.medium.com/v2/resize:fit:1400/1*VcrrNXYOXbtnZqQ9R_Svbw.png"
+                      alt="User profile"
+                    />
+                  </Link>
+                </motion.li>
+              </motion.ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${
+          mobileMenuOpen ? 'block' : 'hidden'
+        }`}>
+          <motion.ul 
+            variants={navVariants}
+            className="hidden md:flex md:p-0 md:space-x-8 md:mt-0 md:border-0 md:bg-transparent"
+          >
+            {menuItems.map((item) => (
+              <motion.li 
+                key={item.name} 
+                variants={itemVariants}
+                className="relative group"
+                onMouseEnter={() => handleMouseEnter(item.name)}
+                onMouseLeave={() => handleMouseLeave(item.name)}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-2 py-2 px-3 text-white rounded hover:text-blue-300 transition-colors duration-200"
+                  >
+                    <span>{item.icon}</span>
+                    {item.name}
+                    {item.submenu && (
+                      <ChevronDown 
+                        size={16} 
+                        className={`transition-transform duration-200 ${hoveredItem === item.name ? 'rotate-180' : ''}`}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
+
+                {item.submenu && (
+                  <AnimatePresence>
+                    {hoveredItem === item.name && (
+                      <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={submenuVariants}
+                        className="absolute left-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl"
+                        onMouseEnter={() => handleMouseEnter(item.name)}
+                        onMouseLeave={() => handleMouseLeave(item.name)}
+                      >
+                        {item.submenu.map((subitem) => (
+                          <motion.div
+                            key={subitem.name}
+                            whileHover={{ backgroundColor: '#f3f4f6' }}
+                            className="relative"
+                          >
+                            <Link
+                              href={subitem.href}
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                            >
+                              {subitem.name}
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 )}
-              </li>
+              </motion.li>
             ))}
-            <li className="relative group">
+
+            <motion.li 
+              variants={itemVariants}
+              className="relative group"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <Link
                 href="/user/profile"
-                className="block py-2 px-3 text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0"
-                onClick={closeMobileMenu}
+                className="block rounded-full overflow-hidden hover:ring-2 hover:ring-blue-300 transition-all duration-200"
               >
-                <img
+                <motion.img
+                  whileHover={{ scale: 1.1 }}
                   className="w-8 h-8 rounded-full"
                   src="https://miro.medium.com/v2/resize:fit:1400/1*VcrrNXYOXbtnZqQ9R_Svbw.png"
                   alt="User profile"
                 />
               </Link>
-            </li>
-          </ul>
+            </motion.li>
+          </motion.ul>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }

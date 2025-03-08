@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+<<<<<<< HEAD
+=======
+import { motion, AnimatePresence } from 'framer-motion';
+>>>>>>> 97fc021 (test commit after ui animation)
 import Cookies from 'js-cookie';
 import DatePicker from 'react-datepicker';
-import Select, { SingleValue, ActionMeta, InputActionMeta } from 'react-select';
+import Select, { SingleValue, ActionMeta } from 'react-select';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAirports, setFilteredAirports } from '@/redux/slices/airportsSlice';
 import debounce from 'lodash.debounce';
 import { setBookDetail } from '@/redux/slices/bookdetailSlice';
-import axios from 'axios';
 import { Flight } from '../../../interfaces/flight';
 import Swal from 'sweetalert2';
 import Image from 'next/image';
@@ -24,8 +27,13 @@ import { setSelectedPassengers } from '@/redux/slices/passengerCountSlice';
 import { OptionType } from '@/interfaces/OptionType';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
+<<<<<<< HEAD
 
+=======
+import LoadingSpinner from '@/pages/components/LoadingSpinner';
+>>>>>>> 97fc021 (test commit after ui animation)
 const ListFlights: React.FC = () => {
+  // ... (keep all the existing state and other declarations)
   const Navbar = dynamic(() => import('../../components/Navbar'), { ssr: true });
   const router = useRouter();
   const dispatch = useDispatch();
@@ -54,7 +62,16 @@ const ListFlights: React.FC = () => {
   const [flightsPerPage] = useState<number>(5);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
+<<<<<<< HEAD
 
+=======
+  const listingRef = useRef(null);
+  useEffect(() => {
+    dispatch(clearFlights());
+    dispatch(clearSelectedReturnFlight());
+  }, [dispatch]);
+  
+>>>>>>> 97fc021 (test commit after ui animation)
   useEffect(() => {
     dispatch(clearFlights());
     dispatch(clearSelectedReturnFlight());
@@ -76,7 +93,14 @@ const ListFlights: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
+<<<<<<< HEAD
       setIsLoading(false);
+=======
+      setTimeout(() => {
+        setIsLoading(false);
+
+      }, 2000);
+>>>>>>> 97fc021 (test commit after ui animation)
     };
 
     fetchData();
@@ -239,7 +263,11 @@ const ListFlights: React.FC = () => {
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
+<<<<<<< HEAD
   
+=======
+    
+>>>>>>> 97fc021 (test commit after ui animation)
     if (!selectedFrom || !selectedTo) {
       Swal.fire('Please select both "From" and "To" locations.');
       return;
@@ -251,8 +279,23 @@ const ListFlights: React.FC = () => {
     }
   
     if (totalPassengers === 0) {
+<<<<<<< HEAD
       Swal.fire('Please select at least one passenger.');
       return;
+=======
+      Swal.fire({
+        title: "Warning",
+        text: "Please select at least one passenger.",
+        icon: "warning",
+        background: "#1E3A8A", // Dark blue background
+        color: "#fff", // White text color
+        confirmButtonColor: "#4F46E5", // Purple confirm button
+        customClass: {
+          popup: "small-alert", // Custom class to style size
+        }
+      })
+            return;
+>>>>>>> 97fc021 (test commit after ui animation)
     }
   
     const from = selectedFrom.label.split(' ')[0].toLowerCase();
@@ -274,7 +317,15 @@ const ListFlights: React.FC = () => {
         to,
         date: startDate,
       });
+<<<<<<< HEAD
   
+=======
+  if(response){
+    if (listingRef.current) {
+      listingRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+>>>>>>> 97fc021 (test commit after ui animation)
       dispatch(setFlights(response.data as Flight[]));
       dispatch(setDate(startDate.toDateString()));
       console.log(returnDate,'csgcdcg')
@@ -307,8 +358,38 @@ const ListFlights: React.FC = () => {
   const currentReturnFlights = sortedReturnFlights.slice(indexOfFirstFlight, indexOfLastFlight);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.6,
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.4 }
+    }
+  };
+
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { duration: 0.6 }
+    }
+  };
 
   return (
+<<<<<<< HEAD
     <>
       <Navbar />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -408,6 +489,132 @@ const ListFlights: React.FC = () => {
                     </button>
                     {isDropdownOpen && (
                       <div className="absolute w-full mt-1 bg-white shadow-lg rounded-lg border border-gray-200 z-10">
+=======
+  
+    
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Navbar />
+      
+      {/* Hero Section with Search Form */}
+      <motion.div 
+        className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900"
+        variants={fadeIn}
+      >
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/pexels-yurix-sardinelly-504228832-16141006.jpg')] bg-cover bg-center opacity-20"></div>
+        </div>
+        
+        <div className="relative z-10 container mx-auto px-4 py-20">
+          <motion.div 
+            className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl"
+            variants={itemVariants}
+          >
+            <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
+            
+            
+              <form onSubmit={handleSearch} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    name="from"
+                    options={filteredAirports}
+                    value={selectedFrom}
+                    onChange={handleSelectChange}
+                    onInputChange={handleInputChange}
+                    placeholder="From"
+                    className="react-select-container text-black"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                  <Select
+                    name="to"
+                    options={filteredAirports}
+                    value={selectedTo}
+                    onChange={handleSelectChange}
+                    onInputChange={handleInputChange}
+                    placeholder="To"
+                    className="react-select-container text-black"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date: Date | null) => setStartDate(date)}
+                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                    placeholderText="Departure Date"
+                    minDate={new Date()}
+                  />
+                  <DatePicker
+                    selected={returnDate}
+                    onChange={(date: Date | null) => setreturnDate(date)}
+                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                    placeholderText="Return Date"
+                    minDate={startDate || new Date()}
+                  />
+                  <Select
+                    name="sort"
+                    options={[
+                      { value: 'price', label: 'Sort by Price' },
+                      { value: 'duration', label: 'Sort by Duration' },
+                      { value: 'departureTime', label: 'Sort by Departure' },
+                    ]}
+                    value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
+                    onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                </div>
+
+                <div className="relative">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
+                  >
+                    Passenger Details
+                  </motion.button>
+                  
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute w-full mt-2 bg-white  text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                      >
+>>>>>>> 97fc021 (test commit after ui animation)
                         <div className="p-4 space-y-4">
                           {[
                             { label: 'Adults', type: 'adults' },
@@ -415,6 +622,7 @@ const ListFlights: React.FC = () => {
                             { label: 'Children', type: 'children' },
                             { label: 'Infants', type: 'infants' },
                           ].map(({ label, type }) => (
+<<<<<<< HEAD
                             <div key={type} className="flex w-full justify-between items-center">
                               <span>{label}:</span>
                               <div className="flex items-center">
@@ -615,11 +823,296 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
                   </ul>
                 </nav>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
+=======
+                            <motion.div
+                              key={type}
+                              className="flex justify-between items-center"
+                              whileHover={{ scale: 1.02 }}
+                            >
+                              <span className="font-medium">{label}</span>
+                              <div className="flex items-center space-x-3">
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => decrement(type as keyof typeof passengers)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                >
+                                  -
+                                </motion.button>
+                                <span className="w-8 text-center">
+                                  {passengers[type as keyof typeof passengers]}
+                                </span>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => increment(type as keyof typeof passengers)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                >
+                                  +
+                                </motion.button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
+                >
+                  Search Flights
+                </motion.button>
+              </form>
+            
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Flight Results Section */}
+      <motion.div 
+        className="relative bg-gray-900 min-h-screen py-20"
+        variants={fadeIn}
+      >
+        <div className="container mx-auto px-4">
+          {/* Flight Type Toggle */}
+          <motion.div 
+            className="flex justify-center mb-8 space-x-4"
+            variants={itemVariants}
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}  ref={listingRef} 
+              whileTap={{ scale: 0.95 }}
+              className={`px-6 py-3 rounded-full font-semibold transition-all ${
+                showMainFlights 
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                  : 'bg-gray-700 text-gray-300'
+              }`}
+              onClick={() => toggleFlights('main')}
+            >
+              Outbound Flights
+            </motion.button>
+            {returnDate && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-6 py-3 rounded-full font-semibold transition-all ${
+                  showReturnFlights
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                    : 'bg-gray-700 text-gray-300'
+                }`}
+                onClick={() => toggleFlights('return')}
+              >
+                Return Flights
+              </motion.button>
+>>>>>>> 97fc021 (test commit after ui animation)
+            )}
+          </motion.div>
+
+          {/* Flight Cards */}
+          <AnimatePresence mode="wait">
+            {showMainFlights && (
+              <motion.div
+                key="main-flights" 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-4"
+              >
+                {currentFlights.length > 0 ? (
+                  currentFlights.map((flight) => (
+                    <motion.div
+                      key={flight.flightNumber}
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      whileHover={{ scale: 1.02 }} 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="text-2xl font-bold text-white">
+                            {flight.departureTime} - {flight.arrivalTime}
+                          </div>
+                          <div className="text-lg text-gray-300">
+                            {flight.departureAirport} → {flight.arrivalAirport}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Duration: {flight.duration} | {flight.stops}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Flight: {flight.flightNumber}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right space-y-3">
+                          <div className="text-3xl font-bold text-white">
+                            ₹{flight.price}
+                          </div>
+                          <div className="text-sm text-green-400">
+                            Save ₹750 with INTSAVER
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            onClick={() => {
+                              dispatch(setBookDetail(flight));
+                              dispatch(setSelectedPassengers(passengers));
+                              dispatch(clearSelectedSeat());
+                              router.push('/user/flight/selectSeats');
+                            }}
+                          >
+                            Book Now
+                          </motion.button>
+                          <div className="text-sm text-gray-400">
+                            Partially refundable
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <Image
+                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
+                      alt="No Flights Available"
+                      width={700}
+                      height={400}
+                      className="rounded-lg shadow-2xl"
+                    />
+                    <p className="text-2xl font-semibold text-white mt-8">
+                      No Flights Available
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+{showReturnFlights && (
+  <motion.div
+    key="return-flights"
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    className="space-y-4"
+  >
+    {loadingReturnFlights ? (
+      <div className="text-center text-white">Loading return flights...</div>
+    ) : currentReturnFlights.length > 0 ? (
+      currentReturnFlights.map((flight) => (
+        <motion.div
+          key={flight.flightNumber}
+          className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+          whileHover={{ scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <div className="text-2xl font-bold text-white">
+                {flight.departureTime} - {flight.arrivalTime}
+              </div>
+              <div className="text-lg text-gray-300">
+                {flight.departureAirport} → {flight.arrivalAirport}
+              </div>
+              <div className="text-sm text-gray-400">
+                Duration: {flight.duration} | {flight.stops}
+              </div>
+              <div className="text-sm text-gray-400">
+                Flight: {flight.flightNumber}
+              </div>
+            </div>
+            
+            <div className="text-right space-y-3">
+              <div className="text-3xl font-bold text-white">
+                ₹{flight.price}
+              </div>
+              <div className="text-sm text-green-400">
+                Save ₹750 with INTSAVER
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                onClick={() => handleSelectReturnFlight(flight)}
+              >
+                Select Return Flight
+              </motion.button>
+              <div className="text-sm text-gray-400">
+                Partially refundable
+              </div>
+            </div>
+          </div>
+<<<<<<< HEAD
+=======
+        </motion.div>
+      ))
+    ) : (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center justify-center py-20"
+      >
+        <Image
+          src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
+          alt="No Return Flights Available"
+          width={700}
+          height={400}
+          className="rounded-lg shadow-2xl"
+        />
+        <p className="text-2xl font-semibold text-white mt-8">
+          No Return Flights Available
+        </p>
+      </motion.div>
+    )}
+  </motion.div>
+)}
+          </AnimatePresence>
+
+          {/* Pagination */}
+          {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
+            <motion.div
+              className="flex justify-center mt-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <nav className="flex space-x-2">
+                {Array.from(
+                  { length: Math.ceil((showMainFlights ? flights.length : returnFlights.length) / flightsPerPage) },
+                  (_, i) => (
+                    <motion.button
+                      key={i}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className={`w-10 h-10 rounded-full ${
+                        currentPage === i + 1
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}
+                      onClick={() => paginate(i + 1)}
+                    >
+                      {i + 1}
+                    </motion.button>
+                  )
+                )}
+              </nav>
+            </motion.div>
+          )}
+>>>>>>> 97fc021 (test commit after ui animation)
+        </div>
+      </motion.div>
+
+<<<<<<< HEAD
       <footer className="rounded-lg w-full bg-gray-900 shadow-inner shadow-white/35 mt-10 pt-40">
         <div className="w-full max-w-screen-xl mx-auto p-4 md:py-8">
           <div className="sm:flex sm:items-center sm:justify-between">
@@ -640,12 +1133,33 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
                 <a href="#" className="hover:underline">Contact</a>
               </li>
             </ul>
+=======
+      {/* Footer */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-gray-900 border-t border-gray-800"
+      >
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-8 md:mb-0">
+              <img src="/logo_airline.png" className="h-10" alt="Skybeats Logo" />
+            </div>
+            <div className="flex flex-wrap justify-center space-x-8">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">About</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a>
+            </div>
           </div>
-          <hr className="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
-          <span className="block text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2024 <a href="https://flowbite.com/" className="hover:underline">Skybeats™</a>. All Rights Reserved.</span>
+          <div className="mt-8 text-center text-gray-400">
+            © 2024 Skybeats™. All Rights Reserved.
+>>>>>>> 97fc021 (test commit after ui animation)
+          </div>
         </div>
-      </footer>
-    </>
+      </motion.footer>
+    </motion.div>
+    
   );
 };
 

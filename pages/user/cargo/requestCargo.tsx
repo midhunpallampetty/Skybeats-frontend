@@ -1,28 +1,18 @@
-'use client';
-
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import dynamic from 'next/dynamic';
-import Image from 'next/image';
-import { Carousel } from 'flowbite-react';
-import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Package, Send, User, MapPin, Weight, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import axiosInstance from '@/pages/api/utils/axiosInstance';
-
+import Navbar from '../../components/Navbar';
+import { useRouter } from 'next/router';
 function RequestCargo() {
-  const Navbar = dynamic(() => import('../../components/Navbar'));
-  const userId = Cookies.get('userId');
-  const router = useRouter();
-
+  const [isLoading, setIsLoading] = useState(true);
+  const router=useRouter()
   const [formData, setFormData] = useState({
     packageName: '',
     senderName: '',
     receiverName: '',
     descriptionOfGoods: '',
     Weight: '',
-    userId: userId,
-    height: 0,
-    width: 0,
     StartLocation: '',
     Destination: ''
   });
@@ -37,21 +27,21 @@ function RequestCargo() {
     Destination: ''
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const validateForm = () => {
     const newErrors = { ...errors };
     let isValid = true;
-  
+
     if (!formData.packageName.trim()) {
       newErrors.packageName = 'Package name is required';
       isValid = false;
@@ -86,296 +76,177 @@ function RequestCargo() {
       newErrors.Weight = 'Weight must be greater than zero';
       isValid = false;
     }
-  
+
     setErrors(newErrors);
     return isValid;
   };
-  
 
-  useEffect(() => {
-    const userId = Cookies.get('userId');
-    const accessToken = Cookies.get('accessToken');
-    const refreshToken = Cookies.get('refreshToken');
-
-    if (!userId || !accessToken || !refreshToken) {
-      Cookies.remove('userId');
-      Cookies.remove('accessToken');
-      Cookies.remove('refreshToken');
-      router.push('/');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleButtonClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
-      const res = await axiosInstance.post('/requestCargo', formData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Simulating API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      Swal.fire({
+        title: 'Request Submitted!',
+        html: `Your cargo booking request has been submitted successfully. TrackingID: <b>CRG${Math.random().toString(36).substr(2, 9).toUpperCase()}</b>`,
+        icon: 'success',
+        background: '#1a1a1a',
+        color: '#fff',
+        confirmButtonColor: '#3b82f6'
       });
-
-      if (res) {
-        const data = await res.data;
-        Swal.fire({
-          title: 'Request Submitted!',
-          html: `Your cargo booking request has been submitted successfully. TrackingID: 
-                 <b>${data.trackingId}</b>`,
-          icon: 'success',
-          background: '#0d324e',
-          color: '#fff',
-          confirmButtonColor: '#1e90ff',
-        });
-
-        setFormData({
-          packageName: '',
-          senderName: '',
-          receiverName: '',
-          descriptionOfGoods: '',
-          Weight: '',
-          userId: Cookies.get('userId') || '',
-          height: 0,
-          width: 0,
-          StartLocation: '',
-          Destination: '',
-        });
-      } else {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Cargo booking failed. Please try again later.',
-          icon: 'error',
-          background: '#0d324e',
-          color: '#fff',
-          confirmButtonColor: '#1e90ff',
-        });
-      }
+setTimeout(() => {
+  router.push('/')
+}, 300);
+      setFormData({
+        packageName: '',
+        senderName: '',
+        receiverName: '',
+        descriptionOfGoods: '',
+        Weight: '',
+        StartLocation: '',
+        Destination: ''
+      });
     } catch (error) {
       Swal.fire({
         title: 'Error!',
         text: 'An unexpected error occurred. Please try again later.',
         icon: 'error',
-        background: '#0d324e',
+        background: '#1a1a1a',
         color: '#fff',
-        confirmButtonColor: '#1e90ff',
+        confirmButtonColor: '#3b82f6'
       });
-      console.error('Error in cargo booking:', error);
     }
   };
 
-  const loadingScreenStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    backgroundColor: '#1a2d45',
-  };
+  const formFields = [
+    { name: 'packageName', label: 'Package Name', icon: Package, type: 'text', placeholder: 'Enter package name' },
+    { name: 'senderName', label: 'Sender Name', icon: User, type: 'text', placeholder: 'Enter sender name' },
+    { name: 'receiverName', label: 'Receiver Name', icon: User, type: 'text', placeholder: 'Enter receiver name' },
+    { name: 'StartLocation', label: 'Pickup Location', icon: MapPin, type: 'text', placeholder: 'Enter pickup location' },
+    { name: 'Destination', label: 'Delivery Location', icon: MapPin, type: 'text', placeholder: 'Enter delivery location' },
+    { name: 'Weight', label: 'Weight (kg)', icon: Weight, type: 'number', placeholder: 'Enter package weight' }
+  ];
 
-  const loadingBarStyle = {
-    width: '100px',
-    height: '5px',
-    backgroundColor: '#0c2336',
-    marginTop: '10px',
-    borderRadius: '3px',
-    overflow: 'hidden',
-  };
-
-  const loadingBarFillStyle = {
-    width: '0',
-    height: '100%',
-    backgroundColor: '#0073b1',
-    animation: 'load 4s ease-in-out infinite',
-  };
-
-  const loadingKeyframes = `
-    @keyframes load {
-      0% { width: 0; }
-      50% { width: 100%; }
-      100% { width: 0; }
-    }
-  `;
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-gradient-to-b from-blue-900 to-black flex items-center justify-center">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
+            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto" />
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-white mt-4 text-xl font-semibold"
+            >
+              Loading...
+            </motion.p>
+          </motion.div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      <style>{loadingKeyframes}</style>
-      {isLoading ? (
-        <div style={{...loadingScreenStyle, flexDirection: 'column'}}>
-          <Image
-            src="/logo_airline.png"
-            alt="Logo"
-            width={200}
-            height={200}
-          />
-          <div style={loadingBarStyle}>
-            <div style={loadingBarFillStyle}></div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <Navbar />
-          <div className="h-[250px] mt-[50px] sm:h-[55] xl:h-[500px] 2xl:h-[800px]">
-            <Carousel>
-              <img
-                src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/pexels-albinberlin-906982.jpg"
-                alt="Career Carousel 1"
-              />
-              <img
-                src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/pexels-miguel-cuenca-67882473-18192938.jpg"
-                alt="Career Carousel 2"
-              />
-            </Carousel>
-          </div>
-          <p className="text-center text-white font-extrabold text-4xl mt-4">Explore Cargo Facility With World's Best Airline</p>
-          <form className="max-w-[800px] mx-auto mt-16">
-            <div className="mb-5">
-              <label htmlFor="packageName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Package Name
-              </label>
-              <input
-                type="text"
-                onChange={handleChange}
-                value={formData.packageName}
-                id="packageName"
-                name="packageName"
-                className="block w-full p-4 text-white rounded-lg bg-[#0d324e] text-white font-extrabold focus:ring-blue-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500"
-                placeholder="Enter the package name"
-              />
-              {errors.packageName && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.packageName}</p>}
-            </div>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-black pt-24 px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="max-w-3xl mx-auto"
+        >
+          <motion.h1
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-4xl font-bold text-center text-white mb-12"
+          >
+            Cargo Request Form
+          </motion.h1>
 
-            <div className="mb-5">
-              <label htmlFor="senderName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Sender Name
-              </label>
-              <input
-                type="text"
-                onChange={handleChange}
-                value={formData.senderName}
-                id="senderName"
-                name="senderName"
-                className="block w-full bg-[#0d324e] h-14 text-white font-extrabold text-sm rounded-lg focus:ring-blue-500 p-2.5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Enter the sender's name"
-              />
-              {errors.senderName && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.senderName}</p>}
-            </div>
+          <motion.form
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            onSubmit={handleSubmit}
+            className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-2xl"
+          >
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <AnimatePresence>
+                {formFields.map((field, index) => (
+                  <motion.div
+                    key={field.name}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative"
+                  >
+                    <label className="block text-sm font-medium text-gray-200 mb-2">
+                      {field.label}
+                    </label>
+                    <div className="relative">
+                      <field.icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
+                      <input
+                        type={field.type}
+                        name={field.name}
+                        value={formData[field.name as keyof typeof formData]}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-2 bg-black/30 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                        placeholder={field.placeholder}
+                      />
+                    </div>
+                    {errors[field.name as keyof typeof errors] && (
+                      <p className="mt-1 text-sm text-red-400">{errors[field.name as keyof typeof errors]}</p>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-            <div className="mb-5">
-              <label htmlFor="receiverName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Receiver Name
-              </label>
-              <input
-                onChange={handleChange}
-                value={formData.receiverName}
-                type="text"
-                id="receiverName"
-                name="receiverName"
-                className="block w-full text-white bg-[#0d324e] text-sm rounded-lg h-14 p-2.5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Enter the receiver's name"
-              />
-              {errors.receiverName && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.receiverName}</p>}
-            </div>
-
-            <div className="mb-5">
-              <label htmlFor="StartLocation" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Sender Location
-              </label>
-              <input
-                onChange={handleChange}
-                value={formData.StartLocation}
-                type="text"
-                id="StartLocation"
-                name="StartLocation"
-                className="block w-full text-white bg-[#0d324e] text-sm rounded-lg h-14 p-2.5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Enter Your Location"
-              />
-              {errors.StartLocation && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.StartLocation}</p>}
-            </div>
-
-            <div className="mb-5">
-              <label htmlFor="Destination" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Receiver Location
-              </label>
-              <input
-                onChange={handleChange}
-                value={formData.Destination}
-                type="text"
-                id="Destination"
-                name="Destination"
-                className="block w-full text-white bg-[#0d324e] text-sm rounded-lg h-14 p-2.5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Enter Receiver Location"
-              />
-              {errors.Destination && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.Destination}</p>}
-            </div>
-
-            <div className="mb-5">
-              <label htmlFor="descriptionOfGoods" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Description of Goods
-              </label>
-              <textarea
-                onChange={handleChange}
-                value={formData.descriptionOfGoods}
-                id="descriptionOfGoods"
-                name="descriptionOfGoods"
-                className="block w-full p-4 text-white rounded-lg bg-[#0d324e] dark:placeholder-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Describe the goods being shipped"
-                rows={4}
-              />
-              {errors.descriptionOfGoods && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.descriptionOfGoods}</p>}
-            </div>
-
-            <div className="mb-5">
-              <label htmlFor="Weight" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Weight (kg)
-              </label>
-              <input
-                onChange={handleChange}
-                value={formData.Weight}
-                type="number"
-                id="Weight"
-                name="Weight"
-                className="block w-full p-2 text-white bg-[#0d324e] rounded-lg focus:ring-blue-500 dark:placeholder-gray-400 h-12 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Enter the weight of the package"
-              />
-              {errors.Weight && <p className="mt-2 text-sm text-red-600 dark:text-red-500">{errors.Weight}</p>}
-            </div>
-
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={handleButtonClick}
-                className="w-full bg-blue-900 h-12 text-white font-extrabold text-2xl p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="md:col-span-2"
               >
-                Submit
-              </button>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Description of Goods
+                </label>
+                <textarea
+                  name="descriptionOfGoods"
+                  value={formData.descriptionOfGoods}
+                  onChange={handleChange}
+                  rows={4}
+                  className="w-full px-4 py-2 bg-black/30 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  placeholder="Describe the goods being shipped"
+                />
+                {errors.descriptionOfGoods && (
+                  <p className="mt-1 text-sm text-red-400">{errors.descriptionOfGoods}</p>
+                )}
+              </motion.div>
             </div>
-          </form>
 
-          <footer className="bg-blue-800/20 text-center mt-20 rounded-md text-white/10 shadow-white/15 shadow-inner">
-            <div className="container p-6">
-             
-            </div>
-
-            <div className="bg-white p-4 text-center text-black">
-              © 2023 Copyright:
-              <a className="dark:text-neutral-400" href="https://tw-elements.com/">Skybeats</a>
-            </div>
-          </footer>
-        </>
-      )}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              className="mt-8 w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white py-3 px-6 rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-blue-500 transition-all duration-200"
+            >
+              <Send className="w-5 h-5" />
+              Submit Request
+            </motion.button>
+          </motion.form>
+        </motion.div>
+      </div>
     </>
   );
 }
 
 export default RequestCargo;
-

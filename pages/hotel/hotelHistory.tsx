@@ -1,15 +1,31 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { bookData } from '@/interfaces/bookData';
-import axios from 'axios';
 import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
 import axiosInstance from '../api/utils/axiosInstance';
-const Navbar = dynamic(() => import('../components/Navbar'));
-const MapModal = dynamic(() => import('../components/MapModal'), { ssr: false });
-const HotelBookingDetailsModal = dynamic(() => import('../components/HotelBookingDetails'), { ssr: false });
+import { LoadingSpinner } from '../components/LoadingSpinner';
+// Dynamic imports with loading states
+const Navbar = dynamic(() => import('../components/Navbar'), {
+  loading: () => <div className="h-16 bg-blue-950/50 animate-pulse" />
+});
+
+const MapModal = dynamic(() => import('../components/MapModal'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-white"></div>
+  </div>
+});
+
+const HotelBookingDetailsModal = dynamic(() => import('../components/HotelBookingDetails'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+    <div className="animate-pulse bg-blue-950/50 p-6 rounded-lg w-96 h-64"></div>
+  </div>
+});
 
 const BookingHistory: React.FC = () => {
   const [bookings, setBookings] = useState<bookData[]>([]);
@@ -19,22 +35,27 @@ const BookingHistory: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const userId = Cookies.get('userId');
-  const itemsPerPage = 5;
-  const router = useRouter();
-  const accessToken = Cookies.get('accessToken');
-  const refreshToken=Cookies.get('accessToken');
-  useEffect(() => {
-    if (!accessToken || !refreshToken) {
-      router.push('/');
-    }
-  }, [accessToken,router,refreshToken]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCancelFlight = async (bookingId: string) => {
+  const router = useRouter();
+  const userId = Cookies.get('userId');
+  const accessToken = Cookies.get('accessToken');
+  const refreshToken = Cookies.get('refreshToken');
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    if (!accessToken || !refreshToken || !userId) {
+      router.push('/');
+      return;
+    }
+  }, [accessToken, refreshToken, userId, router]);
+
+  const handleCancelBooking = async (bookingId: string) => {
     try {
       const result = await Swal.fire({
-        title: 'Are you sure?',
-        text: 'Do you want to cancel this flight? This action cannot be undone.',
+        title: 'Cancel Booking?',
+        text: 'This action cannot be undone and a refund will be initiated.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -43,218 +64,246 @@ const BookingHistory: React.FC = () => {
         cancelButtonText: 'No, keep it'
       });
 
-      if (result.isConfirmed) {
-        const response = await axiosInstance.post(
-          '/cancelHotel',
-          { bookingId },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+      if (!result.isConfirmed) return;
 
-        await Swal.fire({
-          title: 'Canceled!',
-          text: 'Your ticket is canceled. Refund has been initiated to your wallet.',
-          imageUrl: 'https://data2.nssmag.com/images/galleries/39862/New-Project-57.jpg',
-          imageWidth: 400,
-          imageHeight: 200,
-          imageAlt: 'Custom image'
-        });
+      await axiosInstance.post('/cancelHotel', { bookingId });
 
-        console.log('Cancellation successful:', response.data);
+      await Swal.fire({
+        title: 'Booking Cancelled',
+        text: 'Your booking has been cancelled and a refund has been initiated.',
+        imageUrl: 'https://images.unsplash.com/photo-1579621970795-87facc2f976d?auto=format&fit=crop&w=800',
+        imageWidth: 400,
+        imageHeight: 200,
+        imageAlt: 'Refund confirmation'
+      });
 
-        // Update the bookings state to reflect the cancellation
-        setBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== bookingId));
-
-      } else {
-        console.log('Cancellation aborted by user');
-      }
+      setBookings(prevBookings => prevBookings.filter(booking => booking.id !== bookingId));
     } catch (error) {
-      console.error('Error cancelling flight:', error);
+      console.error('Error cancelling booking:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to cancel booking. Please try again.',
+        icon: 'error'
+      });
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchBookings = async () => {
       try {
-        const response: any = await axiosInstance.post('/getHotelBookings',
+        setIsLoading(true);
+        setError(null);
+        const response = await axiosInstance.post('/getHotelBookings', 
           { userId },
-          {
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }
+          { headers: { 'Content-Type': 'application/json' } }
         );
-        console.log(response);
-        const bookingsWithParsedLocation = response?.data.map((booking: any) => ({
+
+        const bookingsWithParsedLocation = response.data.map((booking: any) => ({
           ...booking,
           hotelLocation: booking.hotelLocation ? JSON.parse(booking.hotelLocation) : null,
         }));
+
         setBookings(bookingsWithParsedLocation);
       } catch (error) {
-        console.log('An error occurred', error);
+        setError('Failed to fetch bookings. Please try again later.');
+        console.error('Error fetching bookings:', error);
+      } finally {
+        setTimeout(() => {
+          setIsLoading(false);
+
+        }, 3000);
       }
     };
-    fetchData();
-  }, []);
-  useEffect(()=>{
-    console.log(userId)
-    if(!userId){
-      router.push('/')
+
+    if (userId) {
+      fetchBookings();
     }
-    },[userId])
-  // Sorting bookings by createdAt date
+  }, [userId]);
+
   const sortedBookings = [...bookings].sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();
     return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentBookings = sortedBookings.slice(indexOfFirstItem, indexOfLastItem);
+  const currentBookings = sortedBookings.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const totalPages = Math.ceil(sortedBookings.length / itemsPerPage);
 
-  const handlePrevPage = () => {
-    setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prevPage) => Math.min(prevPage + 1, totalPages));
-  };
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortOrder(e.target.value as 'asc' | 'desc');
-  };
-
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
-  const openMapModal = (latitude: number, longitude: number) => {
-    setSelectedLocation({ latitude, longitude });
-    setIsMapModalOpen(true);
-  };
+  if (isLoading) {
+    return (
+      <LoadingSpinner/>
+    );
+  }
 
-  const closeMapModal = () => {
-    setIsMapModalOpen(false);
-    setSelectedLocation(null);
-  };
-
-  const openDetailsModal = (booking: bookData) => {
-    setSelectedBooking(booking);
-    setIsDetailsModalOpen(true);
-  };
-
-  const closeDetailsModal = () => {
-    setIsDetailsModalOpen(false);
-    setSelectedBooking(null);
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-blue-950/90 flex items-center justify-center">
+        <div className="bg-red-500/20 p-6 rounded-lg text-white text-center">
+          <h2 className="text-2xl font-bold mb-4">Error</h2>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-white text-blue-950 px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-b from-blue-950 to-black">
       <Navbar />
 
-      {/* Map Modal */}
       {selectedLocation && (
         <MapModal
           open={isMapModalOpen}
-          onClose={closeMapModal}
+          onClose={() => setIsMapModalOpen(false)}
           latitude={selectedLocation.latitude}
           longitude={selectedLocation.longitude}
         />
       )}
 
-      {/* Booking Details Modal */}
       {selectedBooking && (
         <HotelBookingDetailsModal
           open={isDetailsModalOpen}
-          onClose={closeDetailsModal}
+          onClose={() => setIsDetailsModalOpen(false)}
           bookingDetails={selectedBooking}
         />
       )}
 
-      <div className="bg-dark-blue min-h-screen p-8 text-white">
-        <h1 className="text-3xl font-bold mb-8 text-center">View Booked Tickets</h1>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold mb-8 text-center text-white">
+          Your Bookings
+        </h1>
 
-        <div className="flex justify-end mb-4">
-          <select className="bg-blue-950/50 text-white p-2 rounded" value={sortOrder} onChange={handleSortChange}>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
+        <div className="flex justify-end mb-6">
+          <select 
+            className="bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+          >
+            <option value="asc">Oldest First</option>
+            <option value="desc">Newest First</option>
           </select>
         </div>
 
-        {currentBookings.map((booking, index) => (
-          <div key={index} className="bg-blue-950/50 border border-gray-800 p-6 rounded-lg mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-xl font-semibold">{booking.guestName}</h2>
-                <p className="text-sm">{booking.phoneNumber}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold">Created At: {formatDate(booking.createdAt)}</p>
-              </div>
-            </div>
+        {currentBookings.length === 0 ? (
+          <div className="text-center text-white py-12">
+            <h2 className="text-2xl font-semibold mb-4">No Bookings Found</h2>
+            <p className="text-gray-300">You haven't made any bookings yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {currentBookings.map((booking, index) => (
+              <div 
+                key={booking.id || index}
+                className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 transition-all hover:bg-white/10"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">
+                      {booking.guestName}
+                    </h2>
+                    <p className="text-gray-300">{booking.phoneNumber}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">Booked on</p>
+                    <p className="text-lg font-semibold text-white">
+                      {formatDate(booking.createdAt)}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex justify-between items-center bg-transparent border border-white/5 p-4 rounded-lg mb-4">
-              <div className="flex space-x-2">
-                <button
-                  className={`py-2 px-4 font-bold rounded ${booking.cancelled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-700'
-                    }`}
-                  onClick={() => {
-                    if (!booking.cancelled) {
-                      openDetailsModal(booking);
-                    }
-                  }}
-                  disabled={booking.cancelled} // Disable if canceled
-                >
-                  Details
-                </button>
-                <button
-                  className={`py-2 px-4 font-bold rounded ${booking.cancelled ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
-                  onClick={() => handleCancelFlight(booking.id)}
-                  disabled={booking.cancelled}
-                >
-                  Cancel
-                </button>
-                {booking.hotelLocation && (
+                <div className="flex gap-3 mt-4">
                   <button
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                    onClick={() => openMapModal(booking.hotelLocation.latitude, booking.hotelLocation.longitude)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      booking.cancelled
+                        ? 'bg-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    onClick={() => !booking.cancelled && setSelectedBooking(booking)}
+                    disabled={booking.cancelled}
                   >
-                    View on Map
+                    View Details
                   </button>
+
+                  {!booking.cancelled && (
+                    <button
+                      className="px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
+                      onClick={() => handleCancelBooking(booking.id)}
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
+
+                  {booking.hotelLocation && (
+                    <button
+                      className="px-4 py-2 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                      onClick={() => {
+                        setSelectedLocation(booking.hotelLocation);
+                        setIsMapModalOpen(true);
+                      }}
+                    >
+                      View Location
+                    </button>
+                  )}
+                </div>
+
+                {booking.cancelled && (
+                  <div className="mt-4 bg-red-500/20 text-red-200 px-4 py-2 rounded-lg">
+                    This booking has been cancelled
+                  </div>
                 )}
               </div>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
 
-        <div className="flex justify-center space-x-4 mt-8">
-          <button
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          <button
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-4 mt-8">
+            <button
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 1
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-white/10 hover:bg-white/20 text-white'
+              }`}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="text-white flex items-center">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === totalPages
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-white/10 hover:bg-white/20 text-white'
+              }`}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

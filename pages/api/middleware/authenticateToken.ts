@@ -21,7 +21,7 @@ import axios from 'axios';
   try {
     
     const response = await axios.post(
-      'https://www.skybeats.site/api/validateToken', 
+      'http://localhost:3300/api/validateToken', 
       { token }, 
       { headers: { 'Content-Type': 'application/json' } }
     );
