@@ -15,7 +15,7 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router=useRouter()
-  const AiChatBot = dynamic(() => import('./_components/ChatBox'));
+  const AiChatBot = dynamic(() => import('../../_components/AiChatBot'), { ssr: false });
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
