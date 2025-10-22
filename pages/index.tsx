@@ -15,7 +15,7 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router=useRouter()
-  const AiChatBot = dynamic(() => import('../../_components/AiChatBot'), { ssr: false });
+  // const AiChatBot = dynamic(() => import('../../_components/AiChatBot'), { ssr: false });
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -189,7 +189,7 @@ const Index = () => {
             </span>
           </motion.div>
         </Link>
-        <AiChatBot />
+        {/* <AiChatBot /> */}
         {/* Desktop Menu */}
         <nav className="hidden md:flex space-x-8">
           {['Home', 'Flights', 'Destinations', 'About Us', 'Contact'].map((item, index) => (
