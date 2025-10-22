@@ -722,7 +722,7 @@ const Index = () => {
 
   return (
     <>
-<<<<<<< HEAD
+
       <style>
         {loadingKeyframes}
       </style>
@@ -815,7 +815,7 @@ const Index = () => {
           </footer>
         </>
       )}
-=======
+
       <AnimatePresence>
         {isLoading ? (
           <Loader />
@@ -835,7 +835,7 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
->>>>>>> 97fc021 (test commit after ui animation)
+
     </>
   );
 };
