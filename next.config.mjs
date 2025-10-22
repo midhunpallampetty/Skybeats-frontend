@@ -8,11 +8,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-<<<<<<< HEAD
+
     domains: ['images.unsplash.com','airline-datace.s3.ap-south-1.amazonaws.com'],
-=======
+
     domains: ['images.unsplash.com,','airline-datace.s3.ap-south-1.amazonaws.com'],
->>>>>>> 97fc021 (test commit after ui animation)
+
     remotePatterns: [
       {
         protocol: 'https',
