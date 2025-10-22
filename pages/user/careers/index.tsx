@@ -10,8 +10,8 @@ import { setSelectedJob } from '@/redux/slices/jobSlice';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
 import { Job } from '@/interfaces/Job';
 
-const Navbar = dynamic(() => import('../../../Components/Navbar'), { ssr: false });
-const ChatBox = dynamic(() => import('../../../Components/ChatBox'), { ssr: false });
+const Navbar = dynamic(() => import('../../../components/Navbar'), { ssr: false });
+const ChatBox = dynamic(() => import('../../../components/ChatBox'), { ssr: false });
 
 const JobBoard = () => {
   const dispatch = useDispatch();

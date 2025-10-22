@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 import {  signIn, signOut ,useSession} from 'next-auth/react';
 import axiosInstance from '../api/utils/axiosInstance';
-import GoogleButton from '../../Components/GoogleButton';
+import GoogleButton from '../../components/GoogleButton';
 import { useMutation } from '@apollo/client';
 import { SIGNIN_MUTATION } from '@/graphql/mutations/loginMutation';
 import { useRouter } from 'next/router';

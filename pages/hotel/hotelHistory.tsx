@@ -7,20 +7,20 @@ import { bookData } from '@/interfaces/bookData';
 import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
 import axiosInstance from '../api/utils/axiosInstance';
-import { LoadingSpinner } from '../../Components/LoadingSpinner';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 // Dynamic imports with loading states
-const Navbar = dynamic(() => import('../../Components/Navbar'), {
+const Navbar = dynamic(() => import('../../components/Navbar'), {
   loading: () => <div className="h-16 bg-blue-950/50 animate-pulse" />
 });
 
-const MapModal = dynamic(() => import('../../Components/MapModal'), {
+const MapModal = dynamic(() => import('../../components/MapModal'), {
   ssr: false,
   loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
     <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-white"></div>
   </div>
 });
 
-const HotelBookingDetailsModal = dynamic(() => import('../../Components/HotelBookingDetails'), {
+const HotelBookingDetailsModal = dynamic(() => import('../../components/HotelBookingDetails'), {
   ssr: false,
   loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
     <div className="animate-pulse bg-blue-950/50 p-6 rounded-lg w-96 h-64"></div>

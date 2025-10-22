@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Navbar from '../../Components/Navbar';
+import Navbar from '../../components/Navbar';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 import axiosInstance from '../api/utils/axiosInstance';

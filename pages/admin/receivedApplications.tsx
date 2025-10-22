@@ -28,7 +28,7 @@ const ReceivedApplications: React.FC = () => {
   const usersPerPage = 4;
   const router = useRouter();
   const token = Cookies.get('adminaccessToken');
-  const AdminNavbar = dynamic(() => import('../../Components/AdminNavbar'));
+  const AdminNavbar = dynamic(() => import('../../components/AdminNavbar'));
 
   const [adminLogin, { loading }] = useMutation(ADMIN_LOGIN_MUTATION);
   console.log(applications,'applica')

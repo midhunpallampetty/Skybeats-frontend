@@ -19,7 +19,7 @@ interface JobApplication {
 }
 
 const pageSize = 3
-const Navbar = dynamic(() => import("../../../Components/Navbar"))
+const Navbar = dynamic(() => import("../../../components/Navbar"))
 
 export default function AppliedJobs() {
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([])

@@ -8,7 +8,7 @@ import { Box, CheckCircle, Clock, Package } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 
 const AllCargoRequests = () => {
-  const Navbar = dynamic(() => import("../../../Components/Navbar"), { ssr: false })
+  const Navbar = dynamic(() => import("../../../components/Navbar"), { ssr: false })
   const [cargoRequests, setCargoRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')

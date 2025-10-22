@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Compass } from 'lucide-react';
-import { DestinationCard } from '../../../Components/DestinationCard';
-import Navbar from '@/Components/Navbar';
+import { DestinationCard } from '../../../components/DestinationCard';
+import Navbar from '@/components/Navbar';
  interface Destination {
     id: number;
     name: string;

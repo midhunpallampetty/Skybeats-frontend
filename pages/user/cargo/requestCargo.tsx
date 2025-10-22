@@ -2,7 +2,7 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Send, User, MapPin, Weight, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import Navbar from '../../../Components/Navbar';
+import Navbar from '../../../components/Navbar';
 import { useRouter } from 'next/router';
 function RequestCargo() {
   const [isLoading, setIsLoading] = useState(true);

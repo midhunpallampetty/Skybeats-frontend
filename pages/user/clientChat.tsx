@@ -15,7 +15,7 @@ interface Message {
   timestamp: Date
 }
 
-const Navbar = dynamic(() => import('../../Components/Navbar'), {
+const Navbar = dynamic(() => import('../../components/Navbar'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-16 bg-gray-800 fixed top-0 left-0 z-50" />

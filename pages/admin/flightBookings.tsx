@@ -40,7 +40,7 @@ const FlightBookings: React.FC = () => {
    const [authorized, setAuthorized] = useState(false);
    const [email, setEmail] = useState('');
    const [role, setRole] = useState('');
-   const AdminNavbar  = dynamic(() => import('../../Components/AdminNavbar'), { ssr: false });
+   const AdminNavbar  = dynamic(() => import('../../components/AdminNavbar'), { ssr: false });
 
    const [bookings, setBookings] = useState<Booking[]>([]);
    const [currentPage, setCurrentPage] = useState(1);

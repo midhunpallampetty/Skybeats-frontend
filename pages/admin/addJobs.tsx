@@ -49,7 +49,7 @@ function AddJobs() {
     image: '',
   });
 const router=useRouter()
-  const AdminNavbar = dynamic(() => import('../../Components/AdminNavbar'));
+  const AdminNavbar = dynamic(() => import('../../components/AdminNavbar'));
   
   const validateForm = () => {
     let valid = true;

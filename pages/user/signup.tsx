@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import OtpModal from '../../Components/OtpModal';
+import OtpModal from '../../components/OtpModal';
 import Link from 'next/link';
 import * as THREE from 'three';
 import FOG from 'vanta/dist/vanta.fog.min';
