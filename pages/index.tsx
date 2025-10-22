@@ -741,7 +741,7 @@ const Index = () => {
       ) : (
         <>
           <Navbar />
-          <AiChatBot />
+          {/* <AiChatBot /> */}
           <div className="h-[80vh] relative">
   <Image
     src="https://airline-datace.s3.ap-south-1.amazonaws.com/pexels-pixabay-531756.jpg"
