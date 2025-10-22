@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const AIRPORT_DATA_URL = 'https://airline-datace.s3.ap-south-1.amazonaws.com/airport-city.txt'; 
+const AIRPORT_DATA_URL = 'https://res.cloudinary.com/dgnjzuwqu/raw/upload/v1761150308/airport-city_gq1oop.txt'; 
 
 // Cache to store fetched airport data
 let airportCache: any[] | null = null;
