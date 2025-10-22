@@ -43,14 +43,14 @@ const UserChat = () => {
   }, [])
 
   useEffect(() => {
-<<<<<<< HEAD
+
     const socketConnection: Socket = io('https://www.skybeats.site'); // Replace with your backend Socket.io URL
     setSocket(socketConnection);
-=======
+
     try {
       const socketConnection: Socket = io("http://localhost:3300")
       setSocket(socketConnection)
->>>>>>> 97fc021 (test commit after ui animation)
+
 
       socketConnection.emit("identify", "user")
 
