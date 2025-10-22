@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plane, Clock, Calendar, CreditCard } from 'lucide-react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import axiosInstance from '../api/utils/axiosInstance';
+import axiosInstance from '../pages/api/utils/axiosInstance';
 
 interface Passenger {
   age: string

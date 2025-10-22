@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Wallet, ArrowUpRight, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import Cookies from 'js-cookie';
 import axios from 'axios';
-import axiosInstance from '../api/utils/axiosInstance';
+import axiosInstance from '../pages/api/utils/axiosInstance';
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;

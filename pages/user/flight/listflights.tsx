@@ -25,7 +25,7 @@ import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
 
 const ListFlights: React.FC = () => {
-  const Navbar = dynamic(() => import('../../_components/Navbar'), { ssr: true });
+  const Navbar = dynamic(() => import('../../../Components/Navbar'), { ssr: true });
   const router = useRouter();
   const dispatch = useDispatch();
   const airports = useSelector((state: RootState) => state.airports.airports);

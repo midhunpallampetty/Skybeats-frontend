@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Navbar from '../_components/Navbar';
-import Footer from '../_components/Footer';
+import Navbar from '../../Components/Navbar';
+import Footer from '../../Components/Footer';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/router';
 import { RootState } from '@/redux/store';

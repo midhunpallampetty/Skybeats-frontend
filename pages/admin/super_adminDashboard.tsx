@@ -11,7 +11,7 @@ const Super_adminDashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 6;
-    const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'));
+    const AdminNavbar = dynamic(() => import('../../Components/AdminNavbar'));
 
     const handleSearch = (term: string) => {
         setSearchTerm(term);

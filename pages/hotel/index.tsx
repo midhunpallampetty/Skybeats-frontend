@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import Navbar from '@/pages/_components/Navbar';
+import Navbar from '@/Components/Navbar';
 import { ApolloClient, gql } from '@apollo/client';
 import { Airport } from '@/interfaces/Airport';
 import { setHotelBookDetail } from '@/redux/slices/hotelBookDetailSlice';
 import Modal from 'react-modal';
-import Footer from '../_components/Footer';
+import Footer from '../../Components/Footer';
 import axiosInstance from '../api/utils/axiosInstance';
 import DatePicker from 'react-datepicker';
 import { useDispatch, UseDispatch,useSelector } from 'react-redux';

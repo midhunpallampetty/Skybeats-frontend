@@ -16,7 +16,7 @@ interface FoodImage {
 }
 
 function AddMeal() {
-  const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'));
+  const AdminNavbar = dynamic(() => import('../../Components/AdminNavbar'));
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [itemName, setItemName] = useState('');

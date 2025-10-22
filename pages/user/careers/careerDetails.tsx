@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { RootState } from '@/redux/store'; 
 import Cookies from 'js-cookie';
-const Navbar = dynamic(() => import('../../_components/Navbar'));
+const Navbar = dynamic(() => import('../../../Components/Navbar'));
 
 const CareerDetails = () => {
   const router = useRouter();

@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import { Carousel } from 'flowbite-react';
-import ShowBookings from '../_components/ShowBookings';
+import ShowBookings from '../../Components/ShowBookings';
 import { gql, useQuery } from '@apollo/client';
 import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import WalletModal from '../_components/Wallet';
+import WalletModal from '../../Components/Wallet';
 import { useRouter } from 'next/router';
 import { Edit, Mail, Phone, MapPin, Cake, User, Briefcase, Calendar, Key } from 'lucide-react';
 import { contextType } from 'react-modal';
@@ -25,7 +25,7 @@ const GET_USER_BY_ID = gql`
       `;
 const ITEMS_PER_PAGE = 5;
 export default function ProfileComponent() {
-  const Navbar = dynamic(() => import('../_components/Navbar'), { ssr: false });
+  const Navbar = dynamic(() => import('../../Components/Navbar'), { ssr: false });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);

@@ -7,7 +7,7 @@ import { ChevronRight, ArrowRight, Facebook, Twitter, Instagram, Linkedin, Githu
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
-import Navbar from './_components/Navbar';
+import Navbar from '../Components/Navbar';
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import axios from 'axios';
-import axiosInstance from '../api/utils/axiosInstance';
+import axiosInstance from '../pages/api/utils/axiosInstance';
 import { OptionType } from '@/interfaces/OptionType';
 import { selectReturnFlight } from '@/redux/slices/returnFlightSlice';
 import Swal from 'sweetalert2';

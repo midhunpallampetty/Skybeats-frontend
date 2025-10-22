@@ -17,7 +17,7 @@ import { Plane, Info } from "lucide-react"
 import axiosInstance from "@/pages/api/utils/axiosInstance"
 
 // Moved Navbar dynamic import outside the component to prevent re-rendering
-const Navbar = dynamic(() => import("../../_components/Navbar"), { 
+const Navbar = dynamic(() => import("../../../Components/Navbar"), { 
   ssr: false,
   loading: () => <div className="h-16 bg-[#050A18]"></div> // Add loading placeholder
 })

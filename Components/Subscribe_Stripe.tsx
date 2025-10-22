@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import axiosInstance from '../api/utils/axiosInstance';
+import axiosInstance from '../pages/api/utils/axiosInstance';
 import React from 'react';
 type SubscribeComponentProps = {
   price: string;

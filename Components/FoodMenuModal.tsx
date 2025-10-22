@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQuery, gql } from '@apollo/client';
-import { RootState } from '../../redux/store';
-import { addItem, removeItem } from '../../redux/slices/foodSlice';
+import { RootState } from '../redux/store';
+import { addItem, removeItem } from '../redux/slices/foodSlice';
 
 const LIST_FOODS = gql`
   query {

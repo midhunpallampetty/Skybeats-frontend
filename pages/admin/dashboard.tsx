@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import withAuthorization from '../hoc/withAuthorization';
 import adminAxios from '../api/utils/adminAxiosInstance';
 
-const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'), {
+const AdminNavbar = dynamic(() => import('../../Components/AdminNavbar'), {
   loading: () => (
     <div className="h-16 bg-gray-800/50 animate-pulse rounded-lg"></div>
   ),
