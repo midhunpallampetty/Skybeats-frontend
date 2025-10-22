@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-<<<<<<< HEAD
-=======
 import { motion, AnimatePresence } from 'framer-motion';
->>>>>>> 97fc021 (test commit after ui animation)
 import Cookies from 'js-cookie';
 import DatePicker from 'react-datepicker';
 import Select, { SingleValue, ActionMeta } from 'react-select';
@@ -21,19 +18,13 @@ import { Airport } from '@/interfaces/Airport';
 import { RootState } from '@/redux/store';
 import { setFlights, clearFlights } from '@/redux/slices/flightsSlice';
 import { setDate } from '@/redux/slices/bookDate';
-
 import { setReturnDate } from '@/redux/slices/returnDate';
 import { setSelectedPassengers } from '@/redux/slices/passengerCountSlice';
 import { OptionType } from '@/interfaces/OptionType';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
-<<<<<<< HEAD
 
-=======
-import LoadingSpinner from '@/pages/components/LoadingSpinner';
->>>>>>> 97fc021 (test commit after ui animation)
 const ListFlights: React.FC = () => {
-  // ... (keep all the existing state and other declarations)
   const Navbar = dynamic(() => import('../../components/Navbar'), { ssr: true });
   const router = useRouter();
   const dispatch = useDispatch();
@@ -41,8 +32,8 @@ const ListFlights: React.FC = () => {
   const filteredAirports = useSelector((state: RootState) => state.airports.filteredAirports);
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState<Date | null>(null);
-  const [returnDate, setreturnDate] = useState<Date | null>(null);
-    const [error, setError] = useState('');
+  const [returnDate, setReturnDate] = useState<Date | null>(null);
+  const [error, setError] = useState('');
   const hasFetched = useRef(false);
   const [showMainFlights, setShowMainFlights] = useState(true);
   const [showReturnFlights, setShowReturnFlights] = useState(false);
@@ -62,26 +53,19 @@ const ListFlights: React.FC = () => {
   const [flightsPerPage] = useState<number>(5);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
-<<<<<<< HEAD
 
-=======
   const listingRef = useRef(null);
+
   useEffect(() => {
     dispatch(clearFlights());
     dispatch(clearSelectedReturnFlight());
   }, [dispatch]);
-  
->>>>>>> 97fc021 (test commit after ui animation)
-  useEffect(() => {
-    dispatch(clearFlights());
-    dispatch(clearSelectedReturnFlight());
-  }, [dispatch]);
-  
+
   useEffect(() => {
     const userId = Cookies.get('userId');
     const accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
-  
+
     if (!userId || !accessToken || !refreshToken) {
       Cookies.remove('userId');
       Cookies.remove('accessToken');
@@ -93,14 +77,7 @@ const ListFlights: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-<<<<<<< HEAD
       setIsLoading(false);
-=======
-      setTimeout(() => {
-        setIsLoading(false);
-
-      }, 2000);
->>>>>>> 97fc021 (test commit after ui animation)
     };
 
     fetchData();
@@ -263,79 +240,65 @@ const ListFlights: React.FC = () => {
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
-<<<<<<< HEAD
-  
-=======
-    
->>>>>>> 97fc021 (test commit after ui animation)
+
     if (!selectedFrom || !selectedTo) {
       Swal.fire('Please select both "From" and "To" locations.');
       return;
     }
-  
+
     if (!startDate) {
       Swal.fire('Please select a departure date.');
       return;
     }
-  
+
     if (totalPassengers === 0) {
-<<<<<<< HEAD
-      Swal.fire('Please select at least one passenger.');
-      return;
-=======
       Swal.fire({
         title: "Warning",
         text: "Please select at least one passenger.",
         icon: "warning",
-        background: "#1E3A8A", // Dark blue background
-        color: "#fff", // White text color
-        confirmButtonColor: "#4F46E5", // Purple confirm button
+        background: "#1E3A8A",
+        color: "#fff",
+        confirmButtonColor: "#4F46E5",
         customClass: {
-          popup: "small-alert", // Custom class to style size
+          popup: "small-alert",
         }
-      })
-            return;
->>>>>>> 97fc021 (test commit after ui animation)
+      });
+      return;
     }
-  
+
     const from = selectedFrom.label.split(' ')[0].toLowerCase();
     const to = selectedTo.label.split(' ')[0].toLowerCase();
     const searchRequest = { from, to, date: startDate };
-  
+
     if (
       lastSearchRequest.current &&
       JSON.stringify(lastSearchRequest.current) === JSON.stringify(searchRequest)
     ) {
       return;
     }
-  
+
     lastSearchRequest.current = searchRequest;
-  
+
     try {
       const response = await axiosInstance.post('/searchFlights', {
         from,
         to,
         date: startDate,
       });
-<<<<<<< HEAD
-  
-=======
-  if(response){
-    if (listingRef.current) {
-      listingRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }
->>>>>>> 97fc021 (test commit after ui animation)
+
+      if (response) {
+        if (listingRef.current) {
+          (listingRef.current as any).scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
       dispatch(setFlights(response.data as Flight[]));
       dispatch(setDate(startDate.toDateString()));
-      console.log(returnDate,'csgcdcg')
-      dispatch(setReturnDate(returnDate?.toDateString()));
-        } catch (error: any) {
+      dispatch(setReturnDate(returnDate?.toDateString() || null));
+    } catch (error: any) {
       console.error('Error searching flights:', error.message);
     }
   };
-  
-  
 
   const sortFlights = (flights: Flight[], criteria: string) => {
     switch (criteria) {
@@ -358,6 +321,7 @@ const ListFlights: React.FC = () => {
   const currentReturnFlights = sortedReturnFlights.slice(indexOfFirstFlight, indexOfLastFlight);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -389,109 +353,6 @@ const ListFlights: React.FC = () => {
   };
 
   return (
-<<<<<<< HEAD
-    <>
-      <Navbar />
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div
-          style={{
-            backgroundImage: 'url(\'/pexels-yurix-sardinelly-504228832-16141006.jpg\')',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            height: '80vh',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <div className="container mx-auto p-4 sm:p-8 bg-blue-950 text-black rounded-xl flex flex-col w-full max-w-lg sm:max-w-xl lg:w-[850px] justify-center space-y-6">
-            {isLoading ? (
-              <div className="animate-pulse flex flex-col space-y-4">
-                <div className="flex space-x-4">
-                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
-                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
-                </div>
-                <div className="flex space-x-4 w-full justify-between">
-                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
-                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
-                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
-                </div>
-                <div className="relative mb-4">
-                  <div className="bg-gray-300 rounded-lg h-12 w-64"></div>
-                </div>
-                <div className="flex justify-center mt-4">
-                  <div className="bg-green-400 rounded-lg h-12 lg:w-[180px]"></div>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSearch}>
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="flex space-x-4">
-                    <Select
-                      name="from"
-                      options={filteredAirports}
-                      value={selectedFrom}
-                      onChange={handleSelectChange}
-                      onInputChange={handleInputChange}
-                      placeholder="From"
-                      className="p-2 rounded-lg text-black w-48"
-                    />
-                    <Select
-                      name="to"
-                      options={filteredAirports}
-                      value={selectedTo}
-                      onChange={handleSelectChange}
-                      onInputChange={handleInputChange}
-                      placeholder="To"
-                      className="p-2 rounded-lg w-48"
-                    />
-                  </div>
-                  <div className="flex space-x-4 w-full justify-between">
-                    <div className="w-full">
-                      <DatePicker
-                        selected={startDate}
-                        onChange={(date: Date | null) => setStartDate(date)}
-                        className="w-full border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
-                        placeholderText="Select date"
-                        minDate={new Date()}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <DatePicker
-                        selected={returnDate}
-                        onChange={(date: Date | null) => setreturnDate(date)}
-                        className="w-full border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
-                        placeholderText="Select Return Date"
-                        minDate={startDate || new Date()}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <Select
-                        name="sort"
-                        options={[
-                          { value: 'price', label: 'Price(Sort)' },
-                          { value: 'duration', label: 'Duration(Sort)' },
-                          { value: 'departureTime', label: 'Departure Time(Sort)' },
-                        ]}
-                        value={{ value: sortOption, label: sortOption.charAt(0).toUpperCase() + sortOption.slice(1) }}
-                        onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
-                        placeholder="Sort by"
-                        className="rounded-lg w-full"
-                      />
-                    </div>
-                  </div>
-                  <div className="relative mb-4">
-                    <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="p-2 rounded-lg bg-gray-200 hover:bg-gray-100 font-extrabold w-64"
-                    >
-                      Passenger Details
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="absolute w-full mt-1 bg-white shadow-lg rounded-lg border border-gray-200 z-10">
-=======
-  
-    
     <motion.div
       initial="hidden"
       animate="visible"
@@ -515,7 +376,25 @@ const ListFlights: React.FC = () => {
           >
             <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
             
-            
+            {isLoading ? (
+              <div className="animate-pulse flex flex-col space-y-4">
+                <div className="flex space-x-4">
+                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
+                </div>
+                <div className="flex space-x-4 w-full justify-between">
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                </div>
+                <div className="relative mb-4">
+                  <div className="bg-gray-300 rounded-lg h-12 w-64"></div>
+                </div>
+                <div className="flex justify-center mt-4">
+                  <div className="bg-green-400 rounded-lg h-12 lg:w-[180px]"></div>
+                </div>
+              </div>
+            ) : (
               <form onSubmit={handleSearch} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
@@ -568,7 +447,7 @@ const ListFlights: React.FC = () => {
                   />
                   <DatePicker
                     selected={returnDate}
-                    onChange={(date: Date | null) => setreturnDate(date)}
+                    onChange={(date: Date | null) => setReturnDate(date)}
                     className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
                     placeholderText="Return Date"
                     minDate={startDate || new Date()}
@@ -614,7 +493,6 @@ const ListFlights: React.FC = () => {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute w-full mt-2 bg-white  text-black rounded-lg shadow-xl border border-gray-100 z-50"
                       >
->>>>>>> 97fc021 (test commit after ui animation)
                         <div className="p-4 space-y-4">
                           {[
                             { label: 'Adults', type: 'adults' },
@@ -622,208 +500,6 @@ const ListFlights: React.FC = () => {
                             { label: 'Children', type: 'children' },
                             { label: 'Infants', type: 'infants' },
                           ].map(({ label, type }) => (
-<<<<<<< HEAD
-                            <div key={type} className="flex w-full justify-between items-center">
-                              <span>{label}:</span>
-                              <div className="flex items-center">
-                                <button
-                                  type="button"
-                                  onClick={() => decrement(type as keyof typeof passengers)}
-                                  className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-lg"
-                                >
-                                  -
-                                </button>
-                                <span className="mx-2">
-                                  {passengers[type as keyof typeof passengers]}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => increment(type as keyof typeof passengers)}
-                                  className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-lg"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex justify-center mt-4">
-                    <button
-                      type="submit"
-                      className="lg:w-[180px] text-white bg-green-400 font-extrabold p-2 rounded-lg"
-                    >
-                      Search
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="relative">
-        <div className="absolute inset-0 min-h-[50vh] opacity-8 z-0" style={{ opacity: '0.08' }}>
-          <Image
-            src="/clouds-2716_1920.jpg"
-            alt="Background Image"
-            layout="fill"
-            objectFit="cover"
-          />
-        </div>
-        <div className="relative z-10 top-0 left-0 w-full">
-          <div className="container mx-auto px-4 h-auto pt-20">
-            <div className="flex justify-center mb-4">
-            <button
-  className={`px-4 py-2 mr-2 ${showMainFlights ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} rounded-md`}
-  onClick={() => toggleFlights('main')}
->
-Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0]}
-</button>
-              {returnDate && (
-                <button
-                  className={`px-4 py-2 ${showReturnFlights ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} rounded-md`}
-                  onClick={() => toggleFlights('return')}
-                >
-                  Return Flights:{selectedTo?.label.split(' ')[0]} → {selectedFrom?.label.split(' ')[0]}
-                </button>
-              )}
-            </div>
-
-            {showMainFlights && (
-              <>
-                {currentFlights.length > 0 ? (
-                  currentFlights.map((flight) => (
-                    <div
-                      key={flight.flightNumber}
-                      className="bg-white/10 p-4 rounded-lg shadow-md flex items-center justify-between w-full mb-4"
-                    >
-                      <div className="flex items-center">
-                        <div className="mr-4"></div>
-                        <div>
-                          <div className="text-lg font-bold text-white">
-                            {flight.departureTime} - {flight.arrivalTime}
-                          </div>
-                          <div className="text-white">
-                            {flight.departureAirport} - {flight.arrivalAirport}
-                          </div>
-                          <div className="text-sm text-white">
-                            {flight.duration} ({flight.stops})
-                          </div>
-                          <div className="text-sm text-white">{flight.flightNumber}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-white">₹{flight.price}</div>
-                        <div className="text-sm text-green-500">
-                          Get at ₹{flight.price - 750} with INTSAVER
-                        </div>
-                        <button
-                          className="bg-green-500 font-extrabold px-6 text-white py-2 rounded mt-2"
-                          onClick={() => {
-                            dispatch(setBookDetail(flight));
-                            dispatch(setSelectedPassengers(passengers));
-                            dispatch(clearSelectedSeat());
-                            router.push('/user/flight/selectSeats');
-                          }}
-                        >
-                          Book
-                        </button>
-                        <div className="text-sm text-white/80 mt-1">Partially refundable</div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <Image
-                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                      alt="No Flights Available"
-                      width={700}
-                      height={400}
-                    />
-                    <p className="text-white text-xl mt-4">No Flights Available</p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {showReturnFlights && (
-              <>
-                {loadingReturnFlights ? (
-                  <div className="flex justify-center items-center">
-                    <img src='/Animation.gif' alt="Loading..." className="w-100 h-100" />
-                  </div>
-                ) : currentReturnFlights.length > 0 ? (
-                  currentReturnFlights.map((flight) => (
-                    <div
-                      key={flight.flightNumber}
-                      className="bg-white/10 p-4 rounded-lg shadow-md flex items-center justify-between w-full mb-4"
-                    >
-                      <div className="flex items-center">
-                        <div className="mr-4"></div>
-                        <div>
-                          <div className="text-lg font-bold text-white">
-                            {flight.departureTime} - {flight.arrivalTime}
-                          </div>
-                          <div className="text-white">
-                            {flight.departureAirport} - {flight.arrivalAirport}
-                          </div>
-                          <div className="text-sm text-white">
-                            {flight.duration} ({flight.stops})
-                          </div>
-                          <div className="text-sm text-white">{flight.flightNumber}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-white">₹{flight.price}</div>
-                        <div className="text-sm text-green-500">
-                          Get at ₹{flight.price - 750} with INTSAVER
-                        </div>
-                        <button
-                          className="bg-green-500 font-extrabold px-6 text-white py-2 rounded mt-2"
-                          onClick={() => handleSelectReturnFlight(flight)}
-                        >
-                          Select Return Flight
-                        </button>
-                        <div className="text-sm text-white/80 mt-1">Partially refundable</div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <Image
-                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                      alt="No Return Flights Available"
-                      width={700}
-                      height={400}
-                    />
-                    <p className="text-white text-xl mt-4">No Return Flights Available</p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
-              <div className="flex justify-center mt-6">
-                <nav>
-                  <ul className="inline-flex">
-                    {Array.from({ length: Math.ceil((showMainFlights ? flights.length : returnFlights.length) / flightsPerPage) }, (_, i) => (
-                      <li
-                        key={i}
-                        className={`px-3 py-2 ${currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                          } rounded-md mx-1 cursor-pointer`}
-                        onClick={() => paginate(i + 1)}
-                      >
-                        {i + 1}
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </div>
-=======
                             <motion.div
                               key={type}
                               className="flex justify-between items-center"
@@ -870,7 +546,7 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
                   Search Flights
                 </motion.button>
               </form>
-            
+            )}
           </motion.div>
         </div>
       </motion.div>
@@ -887,7 +563,7 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
             variants={itemVariants}
           >
             <motion.button
-              whileHover={{ scale: 1.05 }}  ref={listingRef} 
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`px-6 py-3 rounded-full font-semibold transition-all ${
                 showMainFlights 
@@ -895,6 +571,7 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
                   : 'bg-gray-700 text-gray-300'
               }`}
               onClick={() => toggleFlights('main')}
+              ref={listingRef}
             >
               Outbound Flights
             </motion.button>
@@ -911,7 +588,6 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
               >
                 Return Flights
               </motion.button>
->>>>>>> 97fc021 (test commit after ui animation)
             )}
           </motion.div>
 
@@ -998,85 +674,83 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
               </motion.div>
             )}
 
-{showReturnFlights && (
-  <motion.div
-    key="return-flights"
-    initial={{ opacity: 0, x: 20 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: -20 }}
-    className="space-y-4"
-  >
-    {loadingReturnFlights ? (
-      <div className="text-center text-white">Loading return flights...</div>
-    ) : currentReturnFlights.length > 0 ? (
-      currentReturnFlights.map((flight) => (
-        <motion.div
-          key={flight.flightNumber}
-          className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
-          whileHover={{ scale: 1.02 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <div className="text-2xl font-bold text-white">
-                {flight.departureTime} - {flight.arrivalTime}
-              </div>
-              <div className="text-lg text-gray-300">
-                {flight.departureAirport} → {flight.arrivalAirport}
-              </div>
-              <div className="text-sm text-gray-400">
-                Duration: {flight.duration} | {flight.stops}
-              </div>
-              <div className="text-sm text-gray-400">
-                Flight: {flight.flightNumber}
-              </div>
-            </div>
-            
-            <div className="text-right space-y-3">
-              <div className="text-3xl font-bold text-white">
-                ₹{flight.price}
-              </div>
-              <div className="text-sm text-green-400">
-                Save ₹750 with INTSAVER
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
-                onClick={() => handleSelectReturnFlight(flight)}
+            {showReturnFlights && (
+              <motion.div
+                key="return-flights"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
               >
-                Select Return Flight
-              </motion.button>
-              <div className="text-sm text-gray-400">
-                Partially refundable
-              </div>
-            </div>
-          </div>
-<<<<<<< HEAD
-=======
-        </motion.div>
-      ))
-    ) : (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center justify-center py-20"
-      >
-        <Image
-          src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-          alt="No Return Flights Available"
-          width={700}
-          height={400}
-          className="rounded-lg shadow-2xl"
-        />
-        <p className="text-2xl font-semibold text-white mt-8">
-          No Return Flights Available
-        </p>
-      </motion.div>
-    )}
-  </motion.div>
-)}
+                {loadingReturnFlights ? (
+                  <div className="text-center text-white">Loading return flights...</div>
+                ) : currentReturnFlights.length > 0 ? (
+                  currentReturnFlights.map((flight) => (
+                    <motion.div
+                      key={flight.flightNumber}
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      whileHover={{ scale: 1.02 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="text-2xl font-bold text-white">
+                            {flight.departureTime} - {flight.arrivalTime}
+                          </div>
+                          <div className="text-lg text-gray-300">
+                            {flight.departureAirport} → {flight.arrivalAirport}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Duration: {flight.duration} | {flight.stops}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Flight: {flight.flightNumber}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right space-y-3">
+                          <div className="text-3xl font-bold text-white">
+                            ₹{flight.price}
+                          </div>
+                          <div className="text-sm text-green-400">
+                            Save ₹750 with INTSAVER
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            onClick={() => handleSelectReturnFlight(flight)}
+                          >
+                            Select Return Flight
+                          </motion.button>
+                          <div className="text-sm text-gray-400">
+                            Partially refundable
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <Image
+                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
+                      alt="No Return Flights Available"
+                      width={700}
+                      height={400}
+                      className="rounded-lg shadow-2xl"
+                    />
+                    <p className="text-2xl font-semibold text-white mt-8">
+                      No Return Flights Available
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Pagination */}
@@ -1108,32 +782,9 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
               </nav>
             </motion.div>
           )}
->>>>>>> 97fc021 (test commit after ui animation)
         </div>
       </motion.div>
 
-<<<<<<< HEAD
-      <footer className="rounded-lg w-full bg-gray-900 shadow-inner shadow-white/35 mt-10 pt-40">
-        <div className="w-full max-w-screen-xl mx-auto p-4 md:py-8">
-          <div className="sm:flex sm:items-center sm:justify-between">
-            <a href="https://flowbite.com/" className="flex items-center mb-4 sm:mb-0 space-x-3 rtl:space-x-reverse">
-              <img src="/logo_airline.png" className="h-8" alt="Flowbite Logo" />
-            </a>
-            <ul className="flex flex-wrap items-center mb-6 text-sm font-medium text-gray-500 sm:mb-0 dark:text-gray-400">
-              <li>
-                <a href="#" className="hover:underline me-4 md:me-6">About</a>
-              </li>
-              <li>
-                <a href="#" className="hover:underline me-4 md:me-6">Privacy Policy</a>
-              </li>
-              <li>
-                <a href="#" className="hover:underline me-4 md:me-6">Licensing</a>
-              </li>
-              <li>
-                <a href="#" className="hover:underline">Contact</a>
-              </li>
-            </ul>
-=======
       {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
@@ -1154,12 +805,10 @@ Flights: {selectedFrom?.label.split(' ')[0]} → {selectedTo?.label.split(' ')[0
           </div>
           <div className="mt-8 text-center text-gray-400">
             © 2024 Skybeats™. All Rights Reserved.
->>>>>>> 97fc021 (test commit after ui animation)
           </div>
         </div>
       </motion.footer>
     </motion.div>
-    
   );
 };
 
