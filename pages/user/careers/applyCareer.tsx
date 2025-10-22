@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 import Cookies from 'js-cookie';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
 const JobApplicationForm = () => {
-    const Navbar = dynamic(() => import('../../components/Navbar'), { ssr: false });
+    const Navbar = dynamic(() => import('../../_components/Navbar'), { ssr: false });
     const selectedJob = useSelector((state: RootState) => state.job.selectedJob);
     const router = useRouter();
     const isSubmitting = useRef(false);

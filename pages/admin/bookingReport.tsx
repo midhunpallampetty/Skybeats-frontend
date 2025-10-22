@@ -11,7 +11,7 @@ import adminAxios from '../api/utils/adminAxiosInstance';
 import { Guests } from '@/interfaces/Guests';
 
 const Super_adminDashboard: React.FC = () => {
-   const AdminNavbar = dynamic(() => import('../components/AdminNavbar'), { ssr: true });
+   const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'), { ssr: true });
    const [authorized, setAuthorized] = useState(false);
    const [email, setEmail] = useState('');
    const [role, setRole] = useState('');

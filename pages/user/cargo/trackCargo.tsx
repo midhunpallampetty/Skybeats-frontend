@@ -5,7 +5,7 @@ import { Carousel } from 'flowbite-react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 function TrackCargo() {
-  const Navbar = dynamic(() => import('../../components/Navbar'), { ssr: false });
+  const Navbar = dynamic(() => import('../../_components/Navbar'), { ssr: false });
   const [tracking, setTracking] = useState('');
   const [trackingData, setTrackingData] = useState<any>(null);  // Ensure trackingData can be null initially
  const userId=Cookies.get('userId');

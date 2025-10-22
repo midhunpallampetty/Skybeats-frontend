@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Navbar from '@/pages/components/Navbar';
+import Navbar from '@/pages/_components/Navbar';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Cookies from 'js-cookie';

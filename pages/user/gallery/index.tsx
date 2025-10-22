@@ -8,7 +8,7 @@ interface Cloud {
 }
 
 function Index() {
-  const Navbar = dynamic(() => import('../../components/Navbar'), { ssr: false });
+  const Navbar = dynamic(() => import('../../_components/Navbar'), { ssr: false });
   const [images, setImages] = useState<Cloud[]>([]);
   const [imageUrl, setImageUrl] = useState<string[]>([]);
 

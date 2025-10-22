@@ -20,7 +20,7 @@ interface EmojiObject {
   short_names?: string[]; // Array of short names for the emoji (optional)
 }
 // Dynamically import components to prevent SSR issues
-const AdminNavbar = dynamic(() => import('../components/AdminNavbar'), { ssr: false });
+const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'), { ssr: false });
 
 const AdminChat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);

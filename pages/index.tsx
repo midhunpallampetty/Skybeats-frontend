@@ -7,7 +7,7 @@ import { ChevronRight, ArrowRight, Facebook, Twitter, Instagram, Linkedin, Githu
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
-import Navbar from './components/Navbar';
+import Navbar from './_components/Navbar';
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -15,7 +15,7 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router=useRouter()
-  const AiChatBot = dynamic(() => import('./components/ChatBox'));
+  const AiChatBot = dynamic(() => import('./_components/ChatBox'));
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);

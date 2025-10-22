@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight } from '@/redux/slices/returnFlightSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import LoadingSpinner from '@/pages/components/LoadingSpinner';
+import LoadingSpinner from '@/pages/_components/LoadingSpinner';
 import Cookies from 'js-cookie';
 export default function ThanksPayment() {
   const router = useRouter();

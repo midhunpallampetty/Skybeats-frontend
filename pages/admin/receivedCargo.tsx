@@ -16,7 +16,7 @@ const ReceivedCargo: React.FC = () => {
    const { toPDF, targetRef } = usePDF({ filename: 'page.pdf' });
    const [authorized, setAuthorized] = useState(false);
    const [role, setRole] = useState('');
-   const AdminNavbar = dynamic(() => import('../components/AdminNavbar'), { ssr: false });
+   const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'), { ssr: false });
    const [bookings, setBookings] = useState<cargoData[]>([]);
    const [currentPage, setCurrentPage] = useState(1);
    const [searchQuery, setSearchQuery] = useState('');

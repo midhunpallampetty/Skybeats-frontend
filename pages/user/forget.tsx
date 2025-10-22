@@ -3,7 +3,7 @@
 import { useState,useEffect } from 'react';
 import { gql, useMutation } from '@apollo/client';
 import { REQUEST_PASSWORD_RESET } from '@/graphql/mutations/forgetPasswordMutation';
-import Navbar from '../components/Navbar';
+import Navbar from '../_components/Navbar';
 import Link from 'next/link';
 import Swal from 'sweetalert2';
 const formatTimer = (seconds:number) => {

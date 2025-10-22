@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { RootState } from '@/redux/store';
 import { setPassengerDetails } from '@/redux/slices/bookdetailSlice';
 import Swal from 'sweetalert2';
-import FoodMenuModal from '@/pages/components/FoodMenuModal';
+import FoodMenuModal from '@/pages/_components/FoodMenuModal';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import axiosInstance from '@/pages/api/utils/axiosInstance';

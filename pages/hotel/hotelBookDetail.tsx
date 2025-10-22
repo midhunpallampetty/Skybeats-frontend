@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/router';
 import { RootState } from '@/redux/store';
 import { setGuestDetails } from '@/redux/slices/bookdetailSlice';
-import BookingSummaryModal from '../components/HotelModal';
+import BookingSummaryModal from '../_components/HotelModal';
 import Cookies from 'js-cookie';
 
 const HotelBookDetail: React.FC = () => {

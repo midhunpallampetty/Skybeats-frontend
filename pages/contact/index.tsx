@@ -10,7 +10,7 @@ const LoadingSpinner = () => (
 );
 
 const Contact: React.FC = () => {
-  const Navbar=dynamic(()=>import('../components/Navbar'),{ssr:false})
+  const Navbar=dynamic(()=>import('../_components/Navbar'),{ssr:false})
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [formData, setFormData] = useState({

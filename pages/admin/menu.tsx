@@ -26,7 +26,7 @@ const Menu: React.FC = () => {
 
   const token = Cookies.get('adminaccessToken');
   const router = useRouter();
-  const AdminNavbar = dynamic(() => import('../components/AdminNavbar'));
+  const AdminNavbar = dynamic(() => import('../_components/AdminNavbar'));
 
   useEffect(() => {
     const fetchFoods = async () => {
