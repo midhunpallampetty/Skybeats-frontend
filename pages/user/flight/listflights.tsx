@@ -61,18 +61,19 @@ const ListFlights: React.FC = () => {
     dispatch(clearSelectedReturnFlight());
   }, [dispatch]);
 
-  useEffect(() => {
+useEffect(() => {
+  const timer = setTimeout(() => {
     const userId = Cookies.get('userId');
     const accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
 
     if (!userId || !accessToken || !refreshToken) {
-      Cookies.remove('userId');
-      Cookies.remove('accessToken');
-      Cookies.remove('refreshToken');
       router.push('/');
     }
-  }, [router]);
+  }, 300); // give time for cookies to update
+  return () => clearTimeout(timer);
+}, [router]);
+
 
   useEffect(() => {
     const fetchData = async () => {
