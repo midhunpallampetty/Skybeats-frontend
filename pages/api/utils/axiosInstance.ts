@@ -1,65 +1,49 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/router';
+
+const API_ENDPOINT = "https://www.skybeatscloud.upskillr.online";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.API_ENDPOINT,
+  baseURL: API_ENDPOINT,
   withCredentials: true,
 });
 
-
 axiosInstance.interceptors.request.use(
   async (config) => {
-    console.log(config,'config')
     let accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
 
     console.log('Access Token:', accessToken);
     console.log('Refresh Token:', refreshToken);
 
-
     if (!accessToken || !refreshToken) {
       logoutUser();
-      throw new Error('No access token or refresh token available. User needs to re-login.');
+      throw new Error('No access token or refresh token available.');
     }
-
 
     try {
       const validationResponse = await axios.post(
-        `${config.baseURL}/validateToken`,
+        `${API_ENDPOINT}/validateToken`,
         { token: accessToken },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
       if (validationResponse.data?.success !== true) {
-        throw new Error('Access token is invalid. Refreshing token...');
+        throw new Error('Access token invalid — refreshing...');
       }
     } catch (validationError) {
       console.warn('Token validation failed:', validationError);
 
-      // Retry with token refresh
       try {
-        console.log('Attempting to refresh access token...',config.baseURL);
+        console.log('Attempting to refresh access token...', API_ENDPOINT);
         const refreshTokenResponse = await axios.post(
-          `${config.baseURL}/refreshToken`,
+          `${API_ENDPOINT}/refreshToken`,
           { refreshToken },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          { headers: { 'Content-Type': 'application/json' } }
         );
 
         accessToken = refreshTokenResponse.data?.accessToken;
-
-        if (!accessToken) {
-          throw new Error('Token refresh failed.');
-        }
-
+        if (!accessToken) throw new Error('Token refresh failed.');
 
         Cookies.set('accessToken', accessToken, { expires: 1 / 24, path: '/' });
       } catch (refreshError) {
@@ -69,16 +53,11 @@ axiosInstance.interceptors.request.use(
       }
     }
 
-
     config.headers['Authorization'] = `Bearer ${accessToken}`;
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
-
 
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -88,14 +67,9 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-
 function logoutUser() {
-
   Cookies.remove('accessToken');
   Cookies.remove('refreshToken');
-
-
-
 }
 
 export default axiosInstance;
