@@ -54,6 +54,10 @@ const ListFlights: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
 
+  // Authentication refs and state
+  const hasCheckedAuth = useRef(false);
+  const isAuthenticating = useState(false);
+
   const listingRef = useRef(null);
 
   useEffect(() => {
@@ -61,18 +65,145 @@ const ListFlights: React.FC = () => {
     dispatch(clearSelectedReturnFlight());
   }, [dispatch]);
 
+  // Improved authentication check with delay and validation
   useEffect(() => {
-    const userId = Cookies.get('userId');
-    const accessToken = Cookies.get('accessToken');
-    const refreshToken = Cookies.get('refreshToken');
-
-    if (!userId || !accessToken || !refreshToken) {
-      Cookies.remove('userId');
-      Cookies.remove('accessToken');
-      Cookies.remove('refreshToken');
-      router.push('/');
+    // Skip if already checked, server-side, or currently authenticating
+    if (hasCheckedAuth.current || typeof window === 'undefined' || isAuthenticating) {
+      return;
     }
-  }, [router]);
+
+    const checkAuthentication = async () => {
+      try {
+        // Set flag to prevent multiple checks
+        isAuthenticating = true;
+
+        // Small delay to allow cookie settlement during client-side navigation
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        const userId = Cookies.get('userId');
+        const accessToken = Cookies.get('accessToken');
+        const refreshToken = Cookies.get('refreshToken');
+
+        console.log('Auth Check:', { userId: !!userId, accessToken: !!accessToken, refreshToken: !!refreshToken });
+
+        // If any cookie is missing, validate before clearing
+        if (!userId || !accessToken || !refreshToken) {
+          console.warn('Missing auth cookies, validating...');
+          
+          // Try to refresh token first
+          const refreshed = await tryRefreshToken();
+          
+          if (!refreshed) {
+            // Clear cookies with proper options and redirect
+            clearAuthCookies();
+            Swal.fire({
+              icon: 'warning',
+              title: 'Session Expired',
+              text: 'Please log in again to continue.',
+              background: '#1E3A8A',
+              color: '#fff',
+              confirmButtonColor: '#4F46E5',
+            });
+            router.push('/login'); // Redirect to login instead of home
+            return;
+          }
+        } else {
+          // Validate existing token
+          const isValid = await validateToken(accessToken);
+          if (!isValid) {
+            clearAuthCookies();
+            Swal.fire({
+              icon: 'warning',
+              title: 'Session Invalid',
+              text: 'Your session has expired. Please log in again.',
+              background: '#1E3A8A',
+              color: '#fff',
+              confirmButtonColor: '#4F46E5',
+            });
+            router.push('/login');
+            return;
+          }
+        }
+
+        // If we reach here, auth is valid
+        hasCheckedAuth.current = true;
+        console.log('Authentication validated successfully');
+
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+        clearAuthCookies();
+        router.push('/login');
+      } finally {
+        isAuthenticating = false;
+      }
+    };
+
+    // Only run on client-side and after component mount
+    if (typeof window !== 'undefined') {
+      checkAuthentication();
+    }
+  }, [router]); // Keep router dependency for navigation changes
+
+  // Token validation function
+  const validateToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await axiosInstance.get('/auth/validate', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 5000,
+      });
+      return response.status === 200;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
+  };
+
+  // Token refresh function
+  const tryRefreshToken = async (): Promise<boolean> => {
+    try {
+      const refreshToken = Cookies.get('refreshToken');
+      if (!refreshToken) return false;
+
+      const response = await axiosInstance.post('/auth/refresh', {}, {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`,
+        },
+        timeout: 5000,
+      });
+
+      if (response.status === 200) {
+        const { accessToken: newAccessToken } = response.data;
+        
+        // Update cookies with new access token
+        Cookies.set('accessToken', newAccessToken, {
+          expires: 1/24, // 1 hour
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  };
+
+  // Clear auth cookies with proper options
+  const clearAuthCookies = () => {
+    const cookieOptions = {
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+    };
+
+    Cookies.remove('userId', cookieOptions);
+    Cookies.remove('accessToken', cookieOptions);
+    Cookies.remove('refreshToken', cookieOptions);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +235,7 @@ const ListFlights: React.FC = () => {
         Swal.fire({
           text: 'Error Fetching Airports',
           background: 'dark',
+          color: '#fff',
         });
         console.error('Error fetching airports:', error);
       }
@@ -189,6 +321,8 @@ const ListFlights: React.FC = () => {
       text: `${flight.flightNumber} from ${flight.departureAirport} to ${flight.arrivalAirport} has been selected as your return flight.`,
       icon: 'success',
       confirmButtonText: 'OK',
+      background: '#1E3A8A',
+      color: '#fff',
     });
   };
 
@@ -297,6 +431,13 @@ const ListFlights: React.FC = () => {
       dispatch(setReturnDate(returnDate?.toDateString() || null));
     } catch (error: any) {
       console.error('Error searching flights:', error.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'Search Failed',
+        text: 'Unable to find flights. Please try again.',
+        background: '#1E3A8A',
+        color: '#fff',
+      });
     }
   };
 
@@ -352,13 +493,25 @@ const ListFlights: React.FC = () => {
     }
   };
 
+  // Show loading state during authentication
+  if (isAuthenticating) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-xl">Verifying your session...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
-      {/* <Navbar /> */}
+      <Navbar />
       
       {/* Hero Section with Search Form */}
       <motion.div 
@@ -482,7 +635,7 @@ const ListFlights: React.FC = () => {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
                   >
-                    Passenger Details
+                    Passenger Details ({totalPassengers} selected)
                   </motion.button>
                   
                   <AnimatePresence>
@@ -491,46 +644,54 @@ const ListFlights: React.FC = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute w-full mt-2 bg-white  text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                        className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
                       >
                         <div className="p-4 space-y-4">
                           {[
-                            { label: 'Adults', type: 'adults' },
-                            { label: 'Senior Citizens', type: 'seniors' },
-                            { label: 'Children', type: 'children' },
-                            { label: 'Infants', type: 'infants' },
+                            { label: 'Adults', type: 'adults' as const },
+                            { label: 'Senior Citizens', type: 'seniors' as const },
+                            { label: 'Children (2-11)', type: 'children' as const },
+                            { label: 'Infants (<2)', type: 'infants' as const },
                           ].map(({ label, type }) => (
                             <motion.div
                               key={type}
-                              className="flex justify-between items-center"
+                              className="flex justify-between items-center py-2"
                               whileHover={{ scale: 1.02 }}
                             >
-                              <span className="font-medium">{label}</span>
+                              <span className="font-medium text-gray-700">{label}</span>
                               <div className="flex items-center space-x-3">
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
                                   type="button"
-                                  onClick={() => decrement(type as keyof typeof passengers)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                  onClick={() => decrement(type)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                                  disabled={passengers[type] === 0}
                                 >
                                   -
                                 </motion.button>
-                                <span className="w-8 text-center">
-                                  {passengers[type as keyof typeof passengers]}
+                                <span className="w-8 text-center font-semibold">
+                                  {passengers[type]}
                                 </span>
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
                                   type="button"
-                                  onClick={() => increment(type as keyof typeof passengers)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                  onClick={() => increment(type)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                                  disabled={totalPassengers >= 10}
                                 >
                                   +
                                 </motion.button>
                               </div>
                             </motion.div>
                           ))}
+                          <div className="pt-2 border-t border-gray-200">
+                            <div className="flex justify-between text-sm font-semibold text-gray-800">
+                              <span>Total Passengers:</span>
+                              <span>{totalPassengers}</span>
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -568,7 +729,7 @@ const ListFlights: React.FC = () => {
               className={`px-6 py-3 rounded-full font-semibold transition-all ${
                 showMainFlights 
                   ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
-                  : 'bg-gray-700 text-gray-300'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
               onClick={() => toggleFlights('main')}
               ref={listingRef}
@@ -582,7 +743,7 @@ const ListFlights: React.FC = () => {
                 className={`px-6 py-3 rounded-full font-semibold transition-all ${
                   showReturnFlights
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
-                    : 'bg-gray-700 text-gray-300'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
                 onClick={() => toggleFlights('return')}
               >
@@ -602,41 +763,46 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {currentFlights.length > 0 ? (
-                  currentFlights.map((flight) => (
+                  currentFlights.map((flight, index) => (
                     <motion.div
                       key={flight.flightNumber}
-                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-gray-700"
                       whileHover={{ scale: 1.02 }} 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-3 flex-1">
                           <div className="text-2xl font-bold text-white">
                             {flight.departureTime} - {flight.arrivalTime}
                           </div>
                           <div className="text-lg text-gray-300">
-                            {flight.departureAirport} → {flight.arrivalAirport}
+                            {flight.departureAirport} <span className="text-gray-400">→</span> {flight.arrivalAirport}
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Duration: {flight.duration} | {flight.stops}
+                          <div className="text-sm text-gray-400 flex items-center space-x-4">
+                            <span>Duration: {flight.duration}</span>
+                            <span className="flex items-center">
+                              <div className={`w-2 h-2 rounded-full ${flight.stops === 'Direct' ? 'bg-green-400' : 'bg-yellow-400'} mr-2`}></div>
+                              {flight.stops}
+                            </span>
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Flight: {flight.flightNumber}
+                          <div className="text-sm text-gray-500">
+                            Flight: {flight.flightNumber} | {flight.airline}
                           </div>
                         </div>
                         
-                        <div className="text-right space-y-3">
+                        <div className="text-right space-y-3 ml-6">
                           <div className="text-3xl font-bold text-white">
-                            ₹{flight.price}
+                            ₹{flight.price.toLocaleString()}
                           </div>
-                          <div className="text-sm text-green-400">
+                          <div className="text-sm text-green-400 bg-green-900/20 px-2 py-1 rounded-full inline-block">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all w-full sm:w-auto"
                             onClick={() => {
                               dispatch(setBookDetail(flight));
                               dispatch(setSelectedPassengers(passengers));
@@ -646,30 +812,38 @@ const ListFlights: React.FC = () => {
                           >
                             Book Now
                           </motion.button>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400 text-center">
                             Partially refundable
                           </div>
                         </div>
                       </div>
                     </motion.div>
                   ))
-                ) : (
+                ) : flights.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-20"
+                    className="flex flex-col items-center justify-center py-20 text-center"
                   >
                     <Image
                       src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
                       alt="No Flights Available"
-                      width={700}
-                      height={400}
-                      className="rounded-lg shadow-2xl"
+                      width={400}
+                      height={300}
+                      className="rounded-lg shadow-2xl mb-6 opacity-50"
                     />
-                    <p className="text-2xl font-semibold text-white mt-8">
+                    <p className="text-2xl font-semibold text-white mb-2">
                       No Flights Available
                     </p>
+                    <p className="text-gray-400">
+                      Try adjusting your search criteria or dates
+                    </p>
                   </motion.div>
+                ) : (
+                  <div className="text-center text-white py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p>Loading flights...</p>
+                  </div>
                 )}
               </motion.div>
             )}
@@ -683,48 +857,56 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {loadingReturnFlights ? (
-                  <div className="text-center text-white">Loading return flights...</div>
+                  <div className="text-center text-white py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p>Loading return flights...</p>
+                  </div>
                 ) : currentReturnFlights.length > 0 ? (
-                  currentReturnFlights.map((flight) => (
+                  currentReturnFlights.map((flight, index) => (
                     <motion.div
                       key={flight.flightNumber}
-                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-gray-700"
                       whileHover={{ scale: 1.02 }}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-3 flex-1">
                           <div className="text-2xl font-bold text-white">
                             {flight.departureTime} - {flight.arrivalTime}
                           </div>
                           <div className="text-lg text-gray-300">
-                            {flight.departureAirport} → {flight.arrivalAirport}
+                            {flight.departureAirport} <span className="text-gray-400">→</span> {flight.arrivalAirport}
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Duration: {flight.duration} | {flight.stops}
+                          <div className="text-sm text-gray-400 flex items-center space-x-4">
+                            <span>Duration: {flight.duration}</span>
+                            <span className="flex items-center">
+                              <div className={`w-2 h-2 rounded-full ${flight.stops === 'Direct' ? 'bg-green-400' : 'bg-yellow-400'} mr-2`}></div>
+                              {flight.stops}
+                            </span>
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Flight: {flight.flightNumber}
+                          <div className="text-sm text-gray-500">
+                            Flight: {flight.flightNumber} | {flight.airline}
                           </div>
                         </div>
                         
-                        <div className="text-right space-y-3">
+                        <div className="text-right space-y-3 ml-6">
                           <div className="text-3xl font-bold text-white">
-                            ₹{flight.price}
+                            ₹{flight.price.toLocaleString()}
                           </div>
-                          <div className="text-sm text-green-400">
+                          <div className="text-sm text-green-400 bg-green-900/20 px-2 py-1 rounded-full inline-block">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all w-full sm:w-auto"
                             onClick={() => handleSelectReturnFlight(flight)}
                           >
-                            Select Return Flight
+                            Select Return
                           </motion.button>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400 text-center">
                             Partially refundable
                           </div>
                         </div>
@@ -735,17 +917,20 @@ const ListFlights: React.FC = () => {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-20"
+                    className="flex flex-col items-center justify-center py-20 text-center"
                   >
                     <Image
                       src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
                       alt="No Return Flights Available"
-                      width={700}
-                      height={400}
-                      className="rounded-lg shadow-2xl"
+                      width={400}
+                      height={300}
+                      className="rounded-lg shadow-2xl mb-6 opacity-50"
                     />
-                    <p className="text-2xl font-semibold text-white mt-8">
+                    <p className="text-2xl font-semibold text-white mb-2">
                       No Return Flights Available
+                    </p>
+                    <p className="text-gray-400">
+                      Try different dates or airports
                     </p>
                   </motion.div>
                 )}
@@ -756,11 +941,11 @@ const ListFlights: React.FC = () => {
           {/* Pagination */}
           {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
             <motion.div
-              className="flex justify-center mt-8"
+              className="flex justify-center mt-12"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <nav className="flex space-x-2">
+              <nav className="flex space-x-2 bg-white/10 backdrop-blur-sm p-2 rounded-full">
                 {Array.from(
                   { length: Math.ceil((showMainFlights ? flights.length : returnFlights.length) / flightsPerPage) },
                   (_, i) => (
@@ -768,10 +953,10 @@ const ListFlights: React.FC = () => {
                       key={i}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className={`w-10 h-10 rounded-full ${
+                      className={`w-10 h-10 rounded-full font-semibold transition-all ${
                         currentPage === i + 1
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-700 text-gray-300'
+                          ? 'bg-blue-500 text-white shadow-lg'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
                       onClick={() => paginate(i + 1)}
                     >
@@ -780,6 +965,20 @@ const ListFlights: React.FC = () => {
                   )
                 )}
               </nav>
+            </motion.div>
+          )}
+
+          {/* Showing results info */}
+          {flights.length > 0 && (
+            <motion.div
+              className="text-center mt-8 text-gray-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <p>
+                Showing {showMainFlights ? flights.length : returnFlights.length} {showMainFlights ? 'outbound' : 'return'} flights
+                {currentPage > 1 && ` - Page ${currentPage}`}
+              </p>
             </motion.div>
           )}
         </div>
@@ -804,7 +1003,7 @@ const ListFlights: React.FC = () => {
             </div>
           </div>
           <div className="mt-8 text-center text-gray-400">
-            © 2024 Skybeats™. All Rights Reserved.
+            © 2025 Skybeats™. All Rights Reserved.
           </div>
         </div>
       </motion.footer>
