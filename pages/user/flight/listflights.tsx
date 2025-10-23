@@ -362,7 +362,7 @@ useEffect(() => {
       animate="visible"
       variants={containerVariants}
     >
-      <Navbar />
+      {/* <Navbar /> */}
       
       {/* Hero Section with Search Form */}
       <motion.div 
