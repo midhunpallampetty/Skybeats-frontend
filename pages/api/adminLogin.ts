@@ -3,7 +3,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 // Initialize Apollo Client
 const client = new ApolloClient({
-  uri: "http://localhost:3300/graphql", // Replace with your GraphQL API endpoint
+  uri: "https://skybeatscloud.upskillr.online/graphql", // Replace with your GraphQL API endpoint
   cache: new InMemoryCache(),
 });
 

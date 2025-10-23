@@ -2,7 +2,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const adminAxios = axios.create({
-  baseURL: "http://localhost:3000/api/", 
+  baseURL: "https://www.skybeats.site/api/", 
   withCredentials: true,
 });
 

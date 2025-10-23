@@ -21,7 +21,7 @@ import axios from 'axios';
   try {
     
     const response = await axios.post(
-      'http://localhost:3300/api/validateToken', 
+      'https://skybeatscloud.upskillr.online/api/validateToken', 
       { token }, 
       { headers: { 'Content-Type': 'application/json' } }
     );
