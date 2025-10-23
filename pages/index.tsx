@@ -33,9 +33,9 @@ const Index = () => {
   }, []);
 
   const images = [
-    'https://airline-datace.s3.ap-south-1.amazonaws.com/pexels-pixabay-531756.jpg',
-    'https://airline-datace.s3.ap-south-1.amazonaws.com/pexels-pixabay-147411.jpg',
-    'https://airline-datace.s3.ap-south-1.amazonaws.com/pexels-pixabay-302769.jpg'
+    'https://res.cloudinary.com/dgnjzuwqu/image/upload/v1761195490/794_qrifk2.jpg',
+    'https://res.cloudinary.com/dgnjzuwqu/image/upload/v1761195592/2150895701_mjzwoc.jpg',
+    'https://res.cloudinary.com/dgnjzuwqu/image/upload/v1761195649/2150895681_tm7ilz.jpg'
   ];
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
