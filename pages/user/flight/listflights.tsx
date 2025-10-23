@@ -70,9 +70,9 @@ useEffect(() => {
 
   if (!userId || !accessToken || !refreshToken) {
     console.warn('Missing auth cookies. Removing and redirecting...');
-    Cookies.remove('userId');
-    Cookies.remove('accessToken');
-    Cookies.remove('refreshToken');
+    // Cookies.remove('userId');
+    // Cookies.remove('accessToken');
+    // Cookies.remove('refreshToken');
     router.push('/');
   }
 }, [router]);
