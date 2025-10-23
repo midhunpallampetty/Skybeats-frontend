@@ -43,6 +43,7 @@ axiosInstance.interceptors.request.use(
 
       // Retry with token refresh
       try {
+        console.log('Attempting to refresh access token...',config.baseURL);
         const refreshTokenResponse = await axios.post(
           `${config.baseURL}/refreshToken`,
           { refreshToken },
