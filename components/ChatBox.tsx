@@ -202,7 +202,7 @@ const response = await axios({
             }}
             onClick={toggleChat}
           >
-            <img width='180' src='https://airline-datace.s3.ap-south-1.amazonaws.com/snapbg.ai_1738988712102.png' alt="Chat Icon" />
+            <img width='80' src='https://res.cloudinary.com/dgnjzuwqu/image/upload/v1761196138/Screenshot_from_2025-10-23_10-38-02-removebg-preview_bgufqb.png' alt="Chat Icon" />
           </button>
 
           {isOpen && (
