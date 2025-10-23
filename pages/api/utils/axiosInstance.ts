@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000/api/",
+  baseURL: process.env.API_ENDPOINT,
   withCredentials: true,
 });
 
@@ -58,7 +58,7 @@ axiosInstance.interceptors.request.use(
           throw new Error('Token refresh failed.');
         }
 
-        
+
         Cookies.set('accessToken', accessToken, { expires: 1 / 24, path: '/' });
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
