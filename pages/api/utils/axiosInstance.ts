@@ -10,6 +10,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   async (config) => {
+    console.log(config,'config')
     let accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
 
