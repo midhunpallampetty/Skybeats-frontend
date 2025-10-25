@@ -10,7 +10,6 @@ import debounce from 'lodash.debounce';
 import { setBookDetail } from '@/redux/slices/bookdetailSlice';
 import { Flight } from '../../../interfaces/flight';
 import Swal from 'sweetalert2';
-import { TailSpin } from 'react-loader-spinner';
 import Image from 'next/image';
 import { clearSelectedSeat } from '@/redux/slices/selectedSeat';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
@@ -24,6 +23,28 @@ import { setSelectedPassengers } from '@/redux/slices/passengerCountSlice';
 import { OptionType } from '@/interfaces/OptionType';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
+
+// Custom SVG airplane loader for SSR and client-side
+function PlaneLoader() {
+  return (
+    <div className="flex justify-center py-24">
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 60 60"
+            to="360 60 60"
+            dur="1s"
+            repeatCount="indefinite"
+          />
+          <path d="M60 20 L75 80 L60 70 L45 80 Z" fill="#4F46E5" />
+          <rect x="57" y="70" width="6" height="30" rx="3" fill="#3B82F6" />
+        </g>
+      </svg>
+    </div>
+  );
+}
 
 const ListFlights: React.FC = () => {
   const Navbar = dynamic(() => import('../../../components/Navbar'), { ssr: true });
@@ -55,7 +76,6 @@ const ListFlights: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
   const [loadingFlights, setLoadingFlights] = useState(false);
-
   const listingRef = useRef(null);
 
   useEffect(() => {
@@ -67,7 +87,6 @@ const ListFlights: React.FC = () => {
     const userId = Cookies.get('userId');
     const accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
-
     if (!userId || !accessToken || !refreshToken) {
       Cookies.remove('userId');
       Cookies.remove('accessToken');
@@ -81,25 +100,20 @@ const ListFlights: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsLoading(false);
     };
-
     fetchData();
   }, []);
 
-  // Fetch Airports
   useEffect(() => {
     const fetchAirports = async () => {
       if (hasFetched.current) return;
-
       try {
         hasFetched.current = true;
         const response = await axiosInstance.get('/getAirports');
         const airportsData: Airport[] = response.data;
-
         const airportOptions = airportsData.map((airport) => ({
           value: airport.code,
           label: `${airport.city} (${airport.code}) ${airport.country}`,
         }));
-
         dispatch(setAirports(airportOptions));
         dispatch(setFilteredAirports(airportOptions));
       } catch (error) {
@@ -110,7 +124,6 @@ const ListFlights: React.FC = () => {
         console.error('Error fetching airports:', error);
       }
     };
-
     fetchAirports();
   }, [dispatch]);
 
@@ -167,7 +180,6 @@ const ListFlights: React.FC = () => {
       Swal.fire('Please select a return date and destinations.');
       return;
     }
-
     setLoadingReturnFlights(true);
     try {
       const response = await axiosInstance.post('/searchFlights', {
@@ -268,11 +280,9 @@ const ListFlights: React.FC = () => {
       setLoadingFlights(false);
       return;
     }
-
     const from = selectedFrom.label.split(' ')[0].toLowerCase();
     const to = selectedTo.label.split(' ')[0].toLowerCase();
     const searchRequest = { from, to, date: startDate };
-
     if (
       lastSearchRequest.current &&
       JSON.stringify(lastSearchRequest.current) === JSON.stringify(searchRequest)
@@ -280,22 +290,18 @@ const ListFlights: React.FC = () => {
       setLoadingFlights(false);
       return;
     }
-
     lastSearchRequest.current = searchRequest;
-
     try {
       const response = await axiosInstance.post('/searchFlights', {
         from,
         to,
         date: startDate,
       });
-
       if (response) {
         if (listingRef.current) {
           (listingRef.current as any).scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
-
       dispatch(setFlights(response.data as Flight[]));
       dispatch(setDate(startDate.toDateString()));
       dispatch(setReturnDate(returnDate?.toDateString() || null));
@@ -374,14 +380,12 @@ const ListFlights: React.FC = () => {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/pexels-yurix-sardinelly-504228832-16141006.jpg')] bg-cover bg-center opacity-20"></div>
         </div>
-        
         <div className="relative z-10 container mx-auto px-4 py-20">
           <motion.div 
             className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl"
             variants={itemVariants}
           >
             <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
-            
             {isLoading ? (
               <div className="animate-pulse flex flex-col space-y-4">
                 <div className="flex space-x-4">
@@ -442,7 +446,6 @@ const ListFlights: React.FC = () => {
                     }}
                   />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <DatePicker
                     selected={startDate}
@@ -489,14 +492,13 @@ const ListFlights: React.FC = () => {
                   >
                     Passenger Details
                   </motion.button>
-                  
                   <AnimatePresence>
                     {isDropdownOpen && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute w-full mt-2 bg-white  text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                        className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
                       >
                         <div className="p-4 space-y-4">
                           {[
@@ -606,15 +608,7 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {loadingFlights ? (
-                  <div className="flex justify-center py-24">
-                 <TailSpin
-      height={120}
-      width={120}
-      color="#4F46E5"
-      ariaLabel="tail-spin-loading"
-      visible={true}
-    />
-                  </div>
+                  <PlaneLoader />
                 ) : currentFlights.length > 0 ? (
                   currentFlights.map((flight) => (
                     <motion.div
@@ -695,15 +689,7 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {loadingReturnFlights ? (
-                  <div className="flex justify-center py-24">
-                    <Plane
-                      height={120}
-                      width={120}
-                      color="#4F46E5"
-                      ariaLabel="plane-loading"
-                      visible={true}
-                    />
-                  </div>
+                  <PlaneLoader />
                 ) : currentReturnFlights.length > 0 ? (
                   currentReturnFlights.map((flight) => (
                     <motion.div
@@ -802,7 +788,6 @@ const ListFlights: React.FC = () => {
           )}
         </div>
       </motion.div>
-
       {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
