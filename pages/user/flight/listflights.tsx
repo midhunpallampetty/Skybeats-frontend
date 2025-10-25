@@ -10,7 +10,7 @@ import debounce from 'lodash.debounce';
 import { setBookDetail } from '@/redux/slices/bookdetailSlice';
 import { Flight } from '../../../interfaces/flight';
 import Swal from 'sweetalert2';
-import { Plane } from 'react-loader-spinner';
+import { TailSpin } from 'react-loader-spinner';
 import Image from 'next/image';
 import { clearSelectedSeat } from '@/redux/slices/selectedSeat';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
@@ -607,13 +607,13 @@ const ListFlights: React.FC = () => {
               >
                 {loadingFlights ? (
                   <div className="flex justify-center py-24">
-                    <Plane
-                      height={120}
-                      width={120}
-                      color="#4F46E5"
-                      ariaLabel="plane-loading"
-                      visible={true}
-                    />
+                 <TailSpin
+      height={120}
+      width={120}
+      color="#4F46E5"
+      ariaLabel="tail-spin-loading"
+      visible={true}
+    />
                   </div>
                 ) : currentFlights.length > 0 ? (
                   currentFlights.map((flight) => (
