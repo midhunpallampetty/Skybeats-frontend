@@ -10,6 +10,7 @@ import debounce from 'lodash.debounce';
 import { setBookDetail } from '@/redux/slices/bookdetailSlice';
 import { Flight } from '../../../interfaces/flight';
 import Swal from 'sweetalert2';
+import { Plane } from 'react-loader-spinner';
 import Image from 'next/image';
 import { clearSelectedSeat } from '@/redux/slices/selectedSeat';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
@@ -53,6 +54,7 @@ const ListFlights: React.FC = () => {
   const [flightsPerPage] = useState<number>(5);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
+  const [loadingFlights, setLoadingFlights] = useState(false);
 
   const listingRef = useRef(null);
 
@@ -173,7 +175,6 @@ const ListFlights: React.FC = () => {
         to: selectedFrom?.label.split(' ')[0].toLowerCase(),
         date: returnDate,
       });
-      console.log(response.data,'res')
       setReturnFlights(response.data);
     } catch (error) {
       console.error('Error fetching return flights:', error);
@@ -241,17 +242,17 @@ const ListFlights: React.FC = () => {
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
-
+    setLoadingFlights(true);
     if (!selectedFrom || !selectedTo) {
       Swal.fire('Please select both "From" and "To" locations.');
+      setLoadingFlights(false);
       return;
     }
-
     if (!startDate) {
       Swal.fire('Please select a departure date.');
+      setLoadingFlights(false);
       return;
     }
-
     if (totalPassengers === 0) {
       Swal.fire({
         title: "Warning",
@@ -264,6 +265,7 @@ const ListFlights: React.FC = () => {
           popup: "small-alert",
         }
       });
+      setLoadingFlights(false);
       return;
     }
 
@@ -275,6 +277,7 @@ const ListFlights: React.FC = () => {
       lastSearchRequest.current &&
       JSON.stringify(lastSearchRequest.current) === JSON.stringify(searchRequest)
     ) {
+      setLoadingFlights(false);
       return;
     }
 
@@ -298,6 +301,8 @@ const ListFlights: React.FC = () => {
       dispatch(setReturnDate(returnDate?.toDateString() || null));
     } catch (error: any) {
       console.error('Error searching flights:', error.message);
+    } finally {
+      setLoadingFlights(false);
     }
   };
 
@@ -475,7 +480,6 @@ const ListFlights: React.FC = () => {
                     }}
                   />
                 </div>
-
                 <div className="relative">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -537,7 +541,6 @@ const ListFlights: React.FC = () => {
                     )}
                   </AnimatePresence>
                 </div>
-
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -602,7 +605,17 @@ const ListFlights: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                {currentFlights.length > 0 ? (
+                {loadingFlights ? (
+                  <div className="flex justify-center py-24">
+                    <Plane
+                      height={120}
+                      width={120}
+                      color="#4F46E5"
+                      ariaLabel="plane-loading"
+                      visible={true}
+                    />
+                  </div>
+                ) : currentFlights.length > 0 ? (
                   currentFlights.map((flight) => (
                     <motion.div
                       key={flight.flightNumber}
@@ -626,7 +639,6 @@ const ListFlights: React.FC = () => {
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
-                        
                         <div className="text-right space-y-3">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price}
@@ -674,7 +686,6 @@ const ListFlights: React.FC = () => {
                 )}
               </motion.div>
             )}
-
             {showReturnFlights && (
               <motion.div
                 key="return-flights"
@@ -684,7 +695,15 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {loadingReturnFlights ? (
-                  <div className="text-center text-white">Loading return flights...</div>
+                  <div className="flex justify-center py-24">
+                    <Plane
+                      height={120}
+                      width={120}
+                      color="#4F46E5"
+                      ariaLabel="plane-loading"
+                      visible={true}
+                    />
+                  </div>
                 ) : currentReturnFlights.length > 0 ? (
                   currentReturnFlights.map((flight) => (
                     <motion.div
@@ -709,7 +728,6 @@ const ListFlights: React.FC = () => {
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
-                        
                         <div className="text-right space-y-3">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price}
@@ -753,7 +771,6 @@ const ListFlights: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
           {/* Pagination */}
           {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
             <motion.div
