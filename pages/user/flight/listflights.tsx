@@ -25,14 +25,14 @@ import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
 import { Plane } from 'lucide-react';
 
-// Loader matching seat selection page
+// Fullscreen Loader
 function PlaneLoader() {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex items-center justify-center w-full py-24"
+      className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-50"
     >
       <motion.div
         animate={{
@@ -364,6 +364,7 @@ const ListFlights: React.FC = () => {
 
   return (
     <motion.div initial="hidden" animate="visible" variants={containerVariants}>
+      {isLoading || loadingFlights || loadingReturnFlights ? <PlaneLoader /> : null}
       <Navbar />
       <motion.div className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900" variants={fadeIn}>
         <div className="absolute inset-0 overflow-hidden">
@@ -570,7 +571,6 @@ const ListFlights: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                {/* Show loader during search or if no flights have been searched yet */}
                 {(loadingFlights || flights.length === 0) && !showReturnFlights ? (
                   <PlaneLoader />
                 ) : (
@@ -580,7 +580,7 @@ const ListFlights: React.FC = () => {
                         <motion.div
                           key={flight.flightNumber}
                           className="bg-gray-800 rounded-xl p-4 shadow-lg hover:bg-gray-700 transition-all"
-                          whileHover={{ scale: 1.02 }} 
+                          whileHover={{ scale: 1.02}} 
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
