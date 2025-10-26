@@ -25,14 +25,14 @@ import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
 import { Plane } from 'lucide-react';
 
-// Fullscreen Loader
+// Loader matching seat selection page
 function PlaneLoader() {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-50"
+      className="flex items-center justify-center w-full py-24"
     >
       <motion.div
         animate={{
@@ -100,7 +100,7 @@ const ListFlights: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoading(false); // Initial loading completes, but loader won't show here
+      setIsLoading(false);
     };
     fetchData();
   }, []);
@@ -364,7 +364,6 @@ const ListFlights: React.FC = () => {
 
   return (
     <motion.div initial="hidden" animate="visible" variants={containerVariants}>
-      {(loadingFlights || loadingReturnFlights) ? <PlaneLoader /> : null}
       <Navbar />
       <motion.div className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900" variants={fadeIn}>
         <div className="absolute inset-0 overflow-hidden">
@@ -373,153 +372,157 @@ const ListFlights: React.FC = () => {
         <div className="relative z-10 container mx-auto px-4 py-20">
           <motion.div className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl" variants={itemVariants}>
             <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
-            <form onSubmit={handleSearch} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  name="from"
-                  options={filteredAirports}
-                  value={selectedFrom}
-                  onChange={handleSelectChange}
-                  onInputChange={handleInputChange}
-                  placeholder="From"
-                  className="react-select-container text-black"
-                  classNamePrefix="react-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '0.5rem',
-                      border: 'none',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                    })
-                  }}
-                />
-                <Select
-                  name="to"
-                  options={filteredAirports}
-                  value={selectedTo}
-                  onChange={handleSelectChange}
-                  onInputChange={handleInputChange}
-                  placeholder="To"
-                  className="react-select-container text-black"
-                  classNamePrefix="react-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '0.5rem',
-                      border: 'none',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                    })
-                  }}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <DatePicker
-                  selected={startDate}
-                  onChange={(date: Date | null) => setStartDate(date)}
-                  className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
-                  placeholderText="Departure Date"
-                  minDate={new Date()}
-                />
-                <DatePicker
-                  selected={returnDate}
-                  onChange={(date: Date | null) => setReturnDate(date)}
-                  className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
-                  placeholderText="Return Date"
-                  minDate={startDate || new Date()}
-                />
-                <Select
-                  name="sort"
-                  options={[
-                    { value: 'price', label: 'Sort by Price' },
-                    { value: 'duration', label: 'Sort by Duration' },
-                    { value: 'departureTime', label: 'Sort by Departure' },
-                  ]}
-                  value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
-                  onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '0.5rem',
-                      border: 'none',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                    })
-                  }}
-                />
-              </div>
-              <div className="relative">
+            {isLoading ? (
+              <PlaneLoader />
+            ) : (
+              <form onSubmit={handleSearch} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    name="from"
+                    options={filteredAirports}
+                    value={selectedFrom}
+                    onChange={handleSelectChange}
+                    onInputChange={handleInputChange}
+                    placeholder="From"
+                    className="react-select-container text-black"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                  <Select
+                    name="to"
+                    options={filteredAirports}
+                    value={selectedTo}
+                    onChange={handleSelectChange}
+                    onInputChange={handleInputChange}
+                    placeholder="To"
+                    className="react-select-container text-black"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date: Date | null) => setStartDate(date)}
+                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                    placeholderText="Departure Date"
+                    minDate={new Date()}
+                  />
+                  <DatePicker
+                    selected={returnDate}
+                    onChange={(date: Date | null) => setReturnDate(date)}
+                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                    placeholderText="Return Date"
+                    minDate={startDate || new Date()}
+                  />
+                  <Select
+                    name="sort"
+                    options={[
+                      { value: 'price', label: 'Sort by Price' },
+                      { value: 'duration', label: 'Sort by Duration' },
+                      { value: 'departureTime', label: 'Sort by Departure' },
+                    ]}
+                    value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
+                    onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      })
+                    }}
+                  />
+                </div>
+                <div className="relative">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
+                  >
+                    Passenger Details
+                  </motion.button>
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                      >
+                        <div className="p-4 space-y-4">
+                          {[
+                            { label: 'Adults', type: 'adults' },
+                            { label: 'Senior Citizens', type: 'seniors' },
+                            { label: 'Children', type: 'children' },
+                            { label: 'Infants', type: 'infants' },
+                          ].map(({ label, type }) => (
+                            <motion.div
+                              key={type}
+                              className="flex justify-between items-center"
+                              whileHover={{ scale: 1.02 }}
+                            >
+                              <span className="font-medium">{label}</span>
+                              <div className="flex items-center space-x-3">
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => decrement(type as keyof typeof passengers)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                >
+                                  -
+                                </motion.button>
+                                <span className="w-8 text-center">
+                                  {passengers[type as keyof typeof passengers]}
+                                </span>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  type="button"
+                                  onClick={() => increment(type as keyof typeof passengers)}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                                >
+                                  +
+                                </motion.button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
+                  type="submit"
+                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
                 >
-                  Passenger Details
+                  Search Flights
                 </motion.button>
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
-                    >
-                      <div className="p-4 space-y-4">
-                        {[
-                          { label: 'Adults', type: 'adults' },
-                          { label: 'Senior Citizens', type: 'seniors' },
-                          { label: 'Children', type: 'children' },
-                          { label: 'Infants', type: 'infants' },
-                        ].map(({ label, type }) => (
-                          <motion.div
-                            key={type}
-                            className="flex justify-between items-center"
-                            whileHover={{ scale: 1.02 }}
-                          >
-                            <span className="font-medium">{label}</span>
-                            <div className="flex items-center space-x-3">
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                type="button"
-                                onClick={() => decrement(type as keyof typeof passengers)}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
-                              >
-                                -
-                              </motion.button>
-                              <span className="w-8 text-center">
-                                {passengers[type as keyof typeof passengers]}
-                              </span>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                type="button"
-                                onClick={() => increment(type as keyof typeof passengers)}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
-                              >
-                                +
-                              </motion.button>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
-              >
-                Search Flights
-              </motion.button>
-            </form>
+              </form>
+            )}
           </motion.div>
         </div>
       </motion.div>
@@ -567,80 +570,76 @@ const ListFlights: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                {(loadingFlights || flights.length === 0) && !showReturnFlights ? (
+                {loadingFlights ? (
                   <PlaneLoader />
-                ) : (
-                  <>
-                    {currentFlights.length > 0 ? (
-                      currentFlights.map((flight) => (
-                        <motion.div
-                          key={flight.flightNumber}
-                          className="bg-gray-800 rounded-xl p-4 shadow-lg hover:bg-gray-700 transition-all"
-                          whileHover={{ scale: 1.02}} 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <div className="flex justify-between items-center text-white">
-                            <div className="space-y-1">
-                              <div className="text-lg font-semibold">
-                                {flight.departureTime} - {flight.arrivalTime}
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                {flight.departureAirport} → {flight.arrivalAirport}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                Duration: {flight.duration} | {flight.stops}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                Flight: {flight.flightNumber}
-                              </div>
-                            </div>
-                            <div className="text-right space-y-2">
-                              <div className="text-xl font-bold">
-                                ₹{flight.price}
-                              </div>
-                              <div className="text-xs text-green-400">
-                                Save ₹750 with INTSAVER
-                              </div>
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-4 py-2 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600"
-                                onClick={() => {
-                                  dispatch(setBookDetail(flight));
-                                  dispatch(setSelectedPassengers(passengers));
-                                  dispatch(clearSelectedSeat());
-                                  router.push('/user/flight/selectSeats');
-                                }}
-                              >
-                                Book Now
-                              </motion.button>
-                              <div className="text-xs text-gray-400">
-                                Partially refundable
-                              </div>
-                            </div>
+                ) : currentFlights.length > 0 ? (
+                  currentFlights.map((flight) => (
+                    <motion.div
+                      key={flight.flightNumber}
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      whileHover={{ scale: 1.02 }} 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="text-2xl font-bold text-white">
+                            {flight.departureTime} - {flight.arrivalTime}
                           </div>
-                        </motion.div>
-                      ))
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex flex-col items-center justify-center py-20"
-                      >
-                        <Image
-                          src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                          alt="No Flights Available"
-                          width={700}
-                          height={400}
-                          className="rounded-lg shadow-2xl"
-                        />
-                        <p className="text-2xl font-semibold text-white mt-8">
-                          No Flights Available
-                        </p>
-                      </motion.div>
-                    )}
-                  </>
+                          <div className="text-lg text-gray-300">
+                            {flight.departureAirport} → {flight.arrivalAirport}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Duration: {flight.duration} | {flight.stops}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Flight: {flight.flightNumber}
+                          </div>
+                        </div>
+                        <div className="text-right space-y-3">
+                          <div className="text-3xl font-bold text-white">
+                            ₹{flight.price}
+                          </div>
+                          <div className="text-sm text-green-400">
+                            Save ₹750 with INTSAVER
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            onClick={() => {
+                              dispatch(setBookDetail(flight));
+                              dispatch(setSelectedPassengers(passengers));
+                              dispatch(clearSelectedSeat());
+                              router.push('/user/flight/selectSeats');
+                            }}
+                          >
+                            Book Now
+                          </motion.button>
+                          <div className="text-sm text-gray-400">
+                            Partially refundable
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <Image
+                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
+                      alt="No Flights Available"
+                      width={700}
+                      height={400}
+                      className="rounded-lg shadow-2xl"
+                    />
+                    <p className="text-2xl font-semibold text-white mt-8">
+                      No Flights Available
+                    </p>
+                  </motion.div>
                 )}
               </motion.div>
             )}
@@ -658,42 +657,42 @@ const ListFlights: React.FC = () => {
                   currentReturnFlights.map((flight) => (
                     <motion.div
                       key={flight.flightNumber}
-                      className="bg-gray-800 rounded-xl p-4 shadow-lg hover:bg-gray-700 transition-all"
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
                       whileHover={{ scale: 1.02 }}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <div className="flex justify-between items-center text-white">
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold">
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="text-2xl font-bold text-white">
                             {flight.departureTime} - {flight.arrivalTime}
                           </div>
-                          <div className="text-sm text-gray-300">
+                          <div className="text-lg text-gray-300">
                             {flight.departureAirport} → {flight.arrivalAirport}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-sm text-gray-400">
                             Duration: {flight.duration} | {flight.stops}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-sm text-gray-400">
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <div className="text-xl font-bold">
+                        <div className="text-right space-y-3">
+                          <div className="text-3xl font-bold text-white">
                             ₹{flight.price}
                           </div>
-                          <div className="text-xs text-green-400">
+                          <div className="text-sm text-green-400">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600"
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
                             onClick={() => handleSelectReturnFlight(flight)}
                           >
                             Select Return Flight
                           </motion.button>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-sm text-gray-400">
                             Partially refundable
                           </div>
                         </div>
@@ -721,7 +720,7 @@ const ListFlights: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-          {((flights.length > 0 && showMainFlights) || (returnFlights.length > 0 && showReturnFlights)) ? (
+          {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
             <motion.div
               className="flex justify-center mt-8"
               initial={{ opacity: 0, y: 20 }}
@@ -748,7 +747,7 @@ const ListFlights: React.FC = () => {
                 )}
               </nav>
             </motion.div>
-          ) : null}
+          )}
         </div>
       </motion.div>
       <motion.footer
