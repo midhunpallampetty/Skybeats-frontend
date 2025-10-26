@@ -100,7 +100,7 @@ const ListFlights: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoading(false);
+      setIsLoading(false); // Initial loading completes, but loader won't show here
     };
     fetchData();
   }, []);
@@ -364,7 +364,7 @@ const ListFlights: React.FC = () => {
 
   return (
     <motion.div initial="hidden" animate="visible" variants={containerVariants}>
-      {isLoading || loadingFlights || loadingReturnFlights ? <PlaneLoader /> : null}
+      {(loadingFlights || loadingReturnFlights) ? <PlaneLoader /> : null}
       <Navbar />
       <motion.div className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900" variants={fadeIn}>
         <div className="absolute inset-0 overflow-hidden">
@@ -373,157 +373,153 @@ const ListFlights: React.FC = () => {
         <div className="relative z-10 container mx-auto px-4 py-20">
           <motion.div className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl" variants={itemVariants}>
             <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
-            {isLoading ? (
-              <PlaneLoader />
-            ) : (
-              <form onSubmit={handleSearch} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select
-                    name="from"
-                    options={filteredAirports}
-                    value={selectedFrom}
-                    onChange={handleSelectChange}
-                    onInputChange={handleInputChange}
-                    placeholder="From"
-                    className="react-select-container text-black"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '0.5rem',
-                        border: 'none',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                      })
-                    }}
-                  />
-                  <Select
-                    name="to"
-                    options={filteredAirports}
-                    value={selectedTo}
-                    onChange={handleSelectChange}
-                    onInputChange={handleInputChange}
-                    placeholder="To"
-                    className="react-select-container text-black"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '0.5rem',
-                        border: 'none',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                      })
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date: Date | null) => setStartDate(date)}
-                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
-                    placeholderText="Departure Date"
-                    minDate={new Date()}
-                  />
-                  <DatePicker
-                    selected={returnDate}
-                    onChange={(date: Date | null) => setReturnDate(date)}
-                    className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
-                    placeholderText="Return Date"
-                    minDate={startDate || new Date()}
-                  />
-                  <Select
-                    name="sort"
-                    options={[
-                      { value: 'price', label: 'Sort by Price' },
-                      { value: 'duration', label: 'Sort by Duration' },
-                      { value: 'departureTime', label: 'Sort by Departure' },
-                    ]}
-                    value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
-                    onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '0.5rem',
-                        border: 'none',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                      })
-                    }}
-                  />
-                </div>
-                <div className="relative">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
-                  >
-                    Passenger Details
-                  </motion.button>
-                  <AnimatePresence>
-                    {isDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
-                      >
-                        <div className="p-4 space-y-4">
-                          {[
-                            { label: 'Adults', type: 'adults' },
-                            { label: 'Senior Citizens', type: 'seniors' },
-                            { label: 'Children', type: 'children' },
-                            { label: 'Infants', type: 'infants' },
-                          ].map(({ label, type }) => (
-                            <motion.div
-                              key={type}
-                              className="flex justify-between items-center"
-                              whileHover={{ scale: 1.02 }}
-                            >
-                              <span className="font-medium">{label}</span>
-                              <div className="flex items-center space-x-3">
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  type="button"
-                                  onClick={() => decrement(type as keyof typeof passengers)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
-                                >
-                                  -
-                                </motion.button>
-                                <span className="w-8 text-center">
-                                  {passengers[type as keyof typeof passengers]}
-                                </span>
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  type="button"
-                                  onClick={() => increment(type as keyof typeof passengers)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
-                                >
-                                  +
-                                </motion.button>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  name="from"
+                  options={filteredAirports}
+                  value={selectedFrom}
+                  onChange={handleSelectChange}
+                  onInputChange={handleInputChange}
+                  placeholder="From"
+                  className="react-select-container text-black"
+                  classNamePrefix="react-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                    })
+                  }}
+                />
+                <Select
+                  name="to"
+                  options={filteredAirports}
+                  value={selectedTo}
+                  onChange={handleSelectChange}
+                  onInputChange={handleInputChange}
+                  placeholder="To"
+                  className="react-select-container text-black"
+                  classNamePrefix="react-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                    })
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date: Date | null) => setStartDate(date)}
+                  className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                  placeholderText="Departure Date"
+                  minDate={new Date()}
+                />
+                <DatePicker
+                  selected={returnDate}
+                  onChange={(date: Date | null) => setReturnDate(date)}
+                  className="w-full p-3 rounded-lg text-black bg-white/90 border-none"
+                  placeholderText="Return Date"
+                  minDate={startDate || new Date()}
+                />
+                <Select
+                  name="sort"
+                  options={[
+                    { value: 'price', label: 'Sort by Price' },
+                    { value: 'duration', label: 'Sort by Duration' },
+                    { value: 'departureTime', label: 'Sort by Departure' },
+                  ]}
+                  value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
+                  onChange={(option: SingleValue<OptionType>) => setSortOption(option?.value || 'price')}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                    })
+                  }}
+                />
+              </div>
+              <div className="relative">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all"
                 >
-                  Search Flights
+                  Passenger Details
                 </motion.button>
-              </form>
-            )}
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                    >
+                      <div className="p-4 space-y-4">
+                        {[
+                          { label: 'Adults', type: 'adults' },
+                          { label: 'Senior Citizens', type: 'seniors' },
+                          { label: 'Children', type: 'children' },
+                          { label: 'Infants', type: 'infants' },
+                        ].map(({ label, type }) => (
+                          <motion.div
+                            key={type}
+                            className="flex justify-between items-center"
+                            whileHover={{ scale: 1.02 }}
+                          >
+                            <span className="font-medium">{label}</span>
+                            <div className="flex items-center space-x-3">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                type="button"
+                                onClick={() => decrement(type as keyof typeof passengers)}
+                                className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                              >
+                                -
+                              </motion.button>
+                              <span className="w-8 text-center">
+                                {passengers[type as keyof typeof passengers]}
+                              </span>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                type="button"
+                                onClick={() => increment(type as keyof typeof passengers)}
+                                className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full"
+                              >
+                                +
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
+              >
+                Search Flights
+              </motion.button>
+            </form>
           </motion.div>
         </div>
       </motion.div>
