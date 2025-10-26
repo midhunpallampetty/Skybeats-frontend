@@ -570,76 +570,81 @@ const ListFlights: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                {loadingFlights ? (
+                {/* Show loader during search or if no flights have been searched yet */}
+                {(loadingFlights || flights.length === 0) && !showReturnFlights ? (
                   <PlaneLoader />
-                ) : currentFlights.length > 0 ? (
-                  currentFlights.map((flight) => (
-                    <motion.div
-                      key={flight.flightNumber}
-                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
-                      whileHover={{ scale: 1.02 }} 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-2">
-                          <div className="text-2xl font-bold text-white">
-                            {flight.departureTime} - {flight.arrivalTime}
-                          </div>
-                          <div className="text-lg text-gray-300">
-                            {flight.departureAirport} → {flight.arrivalAirport}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            Duration: {flight.duration} | {flight.stops}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            Flight: {flight.flightNumber}
-                          </div>
-                        </div>
-                        <div className="text-right space-y-3">
-                          <div className="text-3xl font-bold text-white">
-                            ₹{flight.price}
-                          </div>
-                          <div className="text-sm text-green-400">
-                            Save ₹750 with INTSAVER
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
-                            onClick={() => {
-                              dispatch(setBookDetail(flight));
-                              dispatch(setSelectedPassengers(passengers));
-                              dispatch(clearSelectedSeat());
-                              router.push('/user/flight/selectSeats');
-                            }}
-                          >
-                            Book Now
-                          </motion.button>
-                          <div className="text-sm text-gray-400">
-                            Partially refundable
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
                 ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-20"
-                  >
-                    <Image
-                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                      alt="No Flights Available"
-                      width={700}
-                      height={400}
-                      className="rounded-lg shadow-2xl"
-                    />
-                    <p className="text-2xl font-semibold text-white mt-8">
-                      No Flights Available
-                    </p>
-                  </motion.div>
+                  <>
+                    {currentFlights.length > 0 ? (
+                      currentFlights.map((flight) => (
+                        <motion.div
+                          key={flight.flightNumber}
+                          className="bg-gray-800 rounded-xl p-4 shadow-lg hover:bg-gray-700 transition-all"
+                          whileHover={{ scale: 1.02 }} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <div className="flex justify-between items-center text-white">
+                            <div className="space-y-1">
+                              <div className="text-lg font-semibold">
+                                {flight.departureTime} - {flight.arrivalTime}
+                              </div>
+                              <div className="text-sm text-gray-300">
+                                {flight.departureAirport} → {flight.arrivalAirport}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                Duration: {flight.duration} | {flight.stops}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                Flight: {flight.flightNumber}
+                              </div>
+                            </div>
+                            <div className="text-right space-y-2">
+                              <div className="text-xl font-bold">
+                                ₹{flight.price}
+                              </div>
+                              <div className="text-xs text-green-400">
+                                Save ₹750 with INTSAVER
+                              </div>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600"
+                                onClick={() => {
+                                  dispatch(setBookDetail(flight));
+                                  dispatch(setSelectedPassengers(passengers));
+                                  dispatch(clearSelectedSeat());
+                                  router.push('/user/flight/selectSeats');
+                                }}
+                              >
+                                Book Now
+                              </motion.button>
+                              <div className="text-xs text-gray-400">
+                                Partially refundable
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex flex-col items-center justify-center py-20"
+                      >
+                        <Image
+                          src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
+                          alt="No Flights Available"
+                          width={700}
+                          height={400}
+                          className="rounded-lg shadow-2xl"
+                        />
+                        <p className="text-2xl font-semibold text-white mt-8">
+                          No Flights Available
+                        </p>
+                      </motion.div>
+                    )}
+                  </>
                 )}
               </motion.div>
             )}
@@ -657,42 +662,42 @@ const ListFlights: React.FC = () => {
                   currentReturnFlights.map((flight) => (
                     <motion.div
                       key={flight.flightNumber}
-                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all"
+                      className="bg-gray-800 rounded-xl p-4 shadow-lg hover:bg-gray-700 transition-all"
                       whileHover={{ scale: 1.02 }}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-2">
-                          <div className="text-2xl font-bold text-white">
+                      <div className="flex justify-between items-center text-white">
+                        <div className="space-y-1">
+                          <div className="text-lg font-semibold">
                             {flight.departureTime} - {flight.arrivalTime}
                           </div>
-                          <div className="text-lg text-gray-300">
+                          <div className="text-sm text-gray-300">
                             {flight.departureAirport} → {flight.arrivalAirport}
                           </div>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400">
                             Duration: {flight.duration} | {flight.stops}
                           </div>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400">
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
-                        <div className="text-right space-y-3">
-                          <div className="text-3xl font-bold text-white">
+                        <div className="text-right space-y-2">
+                          <div className="text-xl font-bold">
                             ₹{flight.price}
                           </div>
-                          <div className="text-sm text-green-400">
+                          <div className="text-xs text-green-400">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600"
+                            className="px-4 py-2 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600"
                             onClick={() => handleSelectReturnFlight(flight)}
                           >
                             Select Return Flight
                           </motion.button>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400">
                             Partially refundable
                           </div>
                         </div>
@@ -720,7 +725,7 @@ const ListFlights: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-          {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
+          {((flights.length > 0 && showMainFlights) || (returnFlights.length > 0 && showReturnFlights)) ? (
             <motion.div
               className="flex justify-center mt-8"
               initial={{ opacity: 0, y: 20 }}
@@ -747,7 +752,7 @@ const ListFlights: React.FC = () => {
                 )}
               </nav>
             </motion.div>
-          )}
+          ) : null}
         </div>
       </motion.div>
       <motion.footer
