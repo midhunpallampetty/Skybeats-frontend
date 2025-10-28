@@ -23,33 +23,9 @@ import { setSelectedPassengers } from '@/redux/slices/passengerCountSlice';
 import { OptionType } from '@/interfaces/OptionType';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
-import { Plane } from 'lucide-react';
-
-// Loader matching seat selection page
-function PlaneLoader() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex items-center justify-center w-full py-24"
-    >
-      <motion.div
-        animate={{
-          rotate: 360,
-          transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
-        }}
-        className="w-20 h-20 flex items-center justify-center"
-      >
-        <Plane className="w-20 h-20 text-blue-500" />
-      </motion.div>
-    </motion.div>
-  );
-}
 
 const ListFlights: React.FC = () => {
   const Navbar = dynamic(() => import('../../../components/Navbar'), { ssr: true });
-
   const router = useRouter();
   const dispatch = useDispatch();
   const airports = useSelector((state: RootState) => state.airports.airports);
@@ -77,7 +53,7 @@ const ListFlights: React.FC = () => {
   const [flightsPerPage] = useState<number>(5);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef(null);
-  const [loadingFlights, setLoadingFlights] = useState(false);
+
   const listingRef = useRef(null);
 
   useEffect(() => {
@@ -89,6 +65,7 @@ const ListFlights: React.FC = () => {
     const userId = Cookies.get('userId');
     const accessToken = Cookies.get('accessToken');
     const refreshToken = Cookies.get('refreshToken');
+
     if (!userId || !accessToken || !refreshToken) {
       Cookies.remove('userId');
       Cookies.remove('accessToken');
@@ -102,20 +79,25 @@ const ListFlights: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsLoading(false);
     };
+
     fetchData();
   }, []);
 
+  // Fetch Airports
   useEffect(() => {
     const fetchAirports = async () => {
       if (hasFetched.current) return;
+
       try {
         hasFetched.current = true;
         const response = await axiosInstance.get('/getAirports');
         const airportsData: Airport[] = response.data;
+
         const airportOptions = airportsData.map((airport) => ({
           value: airport.code,
           label: `${airport.city} (${airport.code}) ${airport.country}`,
         }));
+
         dispatch(setAirports(airportOptions));
         dispatch(setFilteredAirports(airportOptions));
       } catch (error) {
@@ -126,6 +108,7 @@ const ListFlights: React.FC = () => {
         console.error('Error fetching airports:', error);
       }
     };
+
     fetchAirports();
   }, [dispatch]);
 
@@ -182,6 +165,7 @@ const ListFlights: React.FC = () => {
       Swal.fire('Please select a return date and destinations.');
       return;
     }
+
     setLoadingReturnFlights(true);
     try {
       const response = await axiosInstance.post('/searchFlights', {
@@ -189,6 +173,7 @@ const ListFlights: React.FC = () => {
         to: selectedFrom?.label.split(' ')[0].toLowerCase(),
         date: returnDate,
       });
+      console.log(response.data,'res')
       setReturnFlights(response.data);
     } catch (error) {
       console.error('Error fetching return flights:', error);
@@ -216,12 +201,16 @@ const ListFlights: React.FC = () => {
       setSelectedFrom(selectedOption);
       if (selectedTo && selectedOption?.value === selectedTo?.value) {
         setError("Departure and Destination cannot be the same.");
-      } else { setError(''); }
+      } else {
+        setError('');
+      }
     } else if (actionMeta.name === 'to') {
       setSelectedTo(selectedOption);
       if (selectedFrom && selectedOption?.value === selectedFrom?.value) {
         setError("Departure and Destination cannot be the same.");
-      } else { setError(''); }
+      } else {
+        setError('');
+      }
     }
   };
 
@@ -252,17 +241,17 @@ const ListFlights: React.FC = () => {
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
-    setLoadingFlights(true);
+
     if (!selectedFrom || !selectedTo) {
       Swal.fire('Please select both "From" and "To" locations.');
-      setLoadingFlights(false);
       return;
     }
+
     if (!startDate) {
       Swal.fire('Please select a departure date.');
-      setLoadingFlights(false);
       return;
     }
+
     if (totalPassengers === 0) {
       Swal.fire({
         title: "Warning",
@@ -275,38 +264,40 @@ const ListFlights: React.FC = () => {
           popup: "small-alert",
         }
       });
-      setLoadingFlights(false);
       return;
     }
+
     const from = selectedFrom.label.split(' ')[0].toLowerCase();
     const to = selectedTo.label.split(' ')[0].toLowerCase();
     const searchRequest = { from, to, date: startDate };
+
     if (
       lastSearchRequest.current &&
       JSON.stringify(lastSearchRequest.current) === JSON.stringify(searchRequest)
     ) {
-      setLoadingFlights(false);
       return;
     }
+
     lastSearchRequest.current = searchRequest;
+
     try {
       const response = await axiosInstance.post('/searchFlights', {
         from,
         to,
         date: startDate,
       });
+
       if (response) {
         if (listingRef.current) {
           (listingRef.current as any).scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
+
       dispatch(setFlights(response.data as Flight[]));
       dispatch(setDate(startDate.toDateString()));
       dispatch(setReturnDate(returnDate?.toDateString() || null));
     } catch (error: any) {
       console.error('Error searching flights:', error.message);
-    } finally {
-      setLoadingFlights(false);
     }
   };
 
@@ -363,17 +354,47 @@ const ListFlights: React.FC = () => {
   };
 
   return (
-    <motion.div initial="hidden" animate="visible" variants={containerVariants}>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <Navbar />
-      <motion.div className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900" variants={fadeIn}>
+      
+      {/* Hero Section with Search Form */}
+      <motion.div 
+        className="relative min-h-screen bg-gradient-to-br mt-16 from-blue-900 to-indigo-900"
+        variants={fadeIn}
+      >
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-[url('/pexels-yurix-sardinelly-504228832-16141006.jpg')] bg-cover bg-center opacity-20"></div>
         </div>
+        
         <div className="relative z-10 container mx-auto px-4 py-20">
-          <motion.div className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl" variants={itemVariants}>
+          <motion.div 
+            className="max-w-4xl mx-auto bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-2xl"
+            variants={itemVariants}
+          >
             <h1 className="text-4xl font-bold text-white text-center mb-8">Find Your Perfect Flight</h1>
+            
             {isLoading ? (
-              <PlaneLoader />
+              <div className="animate-pulse flex flex-col space-y-4">
+                <div className="flex space-x-4">
+                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-48"></div>
+                </div>
+                <div className="flex space-x-4 w-full justify-between">
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                  <div className="bg-gray-300 rounded-lg h-12 w-full"></div>
+                </div>
+                <div className="relative mb-4">
+                  <div className="bg-gray-300 rounded-lg h-12 w-64"></div>
+                </div>
+                <div className="flex justify-center mt-4">
+                  <div className="bg-green-400 rounded-lg h-12 lg:w-[180px]"></div>
+                </div>
+              </div>
             ) : (
               <form onSubmit={handleSearch} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -416,6 +437,7 @@ const ListFlights: React.FC = () => {
                     }}
                   />
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <DatePicker
                     selected={startDate}
@@ -453,6 +475,7 @@ const ListFlights: React.FC = () => {
                     }}
                   />
                 </div>
+
                 <div className="relative">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -462,13 +485,14 @@ const ListFlights: React.FC = () => {
                   >
                     Passenger Details
                   </motion.button>
+                  
                   <AnimatePresence>
                     {isDropdownOpen && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute w-full mt-2 bg-white text-black rounded-lg shadow-xl border border-gray-100 z-50"
+                        className="absolute w-full mt-2 bg-white  text-black rounded-lg shadow-xl border border-gray-100 z-50"
                       >
                         <div className="p-4 space-y-4">
                           {[
@@ -513,6 +537,7 @@ const ListFlights: React.FC = () => {
                     )}
                   </AnimatePresence>
                 </div>
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -526,9 +551,15 @@ const ListFlights: React.FC = () => {
           </motion.div>
         </div>
       </motion.div>
-      <motion.div className="relative bg-gray-900 min-h-screen py-20" variants={fadeIn}>
+
+      {/* Flight Results Section */}
+      <motion.div 
+        className="relative bg-gray-900 min-h-screen py-20"
+        variants={fadeIn}
+      >
         <div className="container mx-auto px-4">
-          <motion.div
+          {/* Flight Type Toggle */}
+          <motion.div 
             className="flex justify-center mb-8 space-x-4"
             variants={itemVariants}
           >
@@ -561,6 +592,7 @@ const ListFlights: React.FC = () => {
             )}
           </motion.div>
 
+          {/* Flight Cards */}
           <AnimatePresence mode="wait">
             {showMainFlights && (
               <motion.div
@@ -570,9 +602,7 @@ const ListFlights: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                {loadingFlights ? (
-                  <PlaneLoader />
-                ) : currentFlights.length > 0 ? (
+                {currentFlights.length > 0 ? (
                   currentFlights.map((flight) => (
                     <motion.div
                       key={flight.flightNumber}
@@ -596,6 +626,7 @@ const ListFlights: React.FC = () => {
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
+                        
                         <div className="text-right space-y-3">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price}
@@ -643,6 +674,7 @@ const ListFlights: React.FC = () => {
                 )}
               </motion.div>
             )}
+
             {showReturnFlights && (
               <motion.div
                 key="return-flights"
@@ -652,7 +684,7 @@ const ListFlights: React.FC = () => {
                 className="space-y-4"
               >
                 {loadingReturnFlights ? (
-                  <PlaneLoader />
+                  <div className="text-center text-white">Loading return flights...</div>
                 ) : currentReturnFlights.length > 0 ? (
                   currentReturnFlights.map((flight) => (
                     <motion.div
@@ -677,6 +709,7 @@ const ListFlights: React.FC = () => {
                             Flight: {flight.flightNumber}
                           </div>
                         </div>
+                        
                         <div className="text-right space-y-3">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price}
@@ -720,6 +753,8 @@ const ListFlights: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Pagination */}
           {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
             <motion.div
               className="flex justify-center mt-8"
@@ -750,6 +785,8 @@ const ListFlights: React.FC = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
