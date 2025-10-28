@@ -173,7 +173,6 @@ const ListFlights: React.FC = () => {
         to: selectedFrom?.label.split(' ')[0].toLowerCase(),
         date: returnDate,
       });
-      console.log(response.data,'res')
       setReturnFlights(response.data);
     } catch (error) {
       console.error('Error fetching return flights:', error);
