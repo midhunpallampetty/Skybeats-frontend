@@ -479,7 +479,7 @@ const ListFlights: React.FC = () => {
         // Show warning but don't block user
         Swal.fire({
           title: 'Flights Found!',
-          text: 'We found flights but had trouble saving them. You can still book from the results below.',
+          text: 'We found flights !',
           icon: 'warning',
           background: '#282c34',
           color: '#fff',
