@@ -113,13 +113,23 @@ const ListFlights: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const lastSearchRequest = useRef<any>(null);
   const [loadingFlights, setLoadingFlights] = useState(false);
-  const [searchPerformed, setSearchPerformed] = useState(false); // Track if search has been performed
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null); // Separate error state for search
   const listingRef = useRef<HTMLDivElement>(null);
 
   // Debug logging
   useEffect(() => {
-    console.log('Flights state updated:', { flights, loadingFlights, searchPerformed });
-  }, [flights, loadingFlights, searchPerformed]);
+    console.log('=== FLIGHTS DEBUG ===');
+    console.log('Redux flights:', flights);
+    console.log('Redux flights length:', flights.length);
+    console.log('loadingFlights:', loadingFlights);
+    console.log('searchPerformed:', searchPerformed);
+    console.log('searchError:', searchError);
+    console.log('selectedFrom:', selectedFrom);
+    console.log('selectedTo:', selectedTo);
+    console.log('startDate:', startDate);
+    console.log('===================');
+  }, [flights, loadingFlights, searchPerformed, searchError, selectedFrom, selectedTo, startDate]);
 
   // Clear flights on component mount
   useEffect(() => {
@@ -159,10 +169,12 @@ const ListFlights: React.FC = () => {
 
       try {
         hasFetched.current = true;
+        console.log('Fetching airports...');
         const response = await axiosInstance.get('/getAirports');
+        console.log('Airports response:', response);
+        
         const airportsData: Airport[] = response.data;
-
-        console.log('Airports fetched:', airportsData.length); // Debug log
+        console.log('Airports fetched:', airportsData.length);
 
         const airportOptions = airportsData.map((airport) => ({
           value: airport.code,
@@ -171,6 +183,7 @@ const ListFlights: React.FC = () => {
 
         dispatch(setAirports(airportOptions));
         dispatch(setFilteredAirports(airportOptions));
+        console.log('Airports dispatched to Redux');
       } catch (error) {
         console.error('Error fetching airports:', error);
         Swal.fire({
@@ -228,12 +241,14 @@ const ListFlights: React.FC = () => {
     if (type === 'main') {
       setShowMainFlights(true);
       setShowReturnFlights(false);
-      setCurrentPage(1); // Reset pagination
+      setCurrentPage(1);
     } else {
       setShowMainFlights(false);
       setShowReturnFlights(true);
-      setCurrentPage(1); // Reset pagination
-      fetchReturnFlights();
+      setCurrentPage(1);
+      if (returnDate && selectedFrom && selectedTo) {
+        fetchReturnFlights();
+      }
     }
   };
 
@@ -249,7 +264,8 @@ const ListFlights: React.FC = () => {
       const fromCity = selectedTo?.label.split(' ')[0].toLowerCase();
       const toCity = selectedFrom?.label.split(' ')[0].toLowerCase();
       
-      console.log('Fetching return flights:', { fromCity, toCity, returnDate }); // Debug log
+      console.log('=== RETURN FLIGHTS DEBUG ===');
+      console.log('Fetching return flights:', { fromCity, toCity, returnDate });
       
       const response = await axiosInstance.post('/searchFlights', {
         from: fromCity,
@@ -257,12 +273,25 @@ const ListFlights: React.FC = () => {
         date: returnDate,
       });
 
-      console.log('Return flights response:', response.data); // Debug log
-      setReturnFlights(response.data || []);
-    } catch (error) {
-      console.error('Error fetching return flights:', error);
+      console.log('Return flights response status:', response.status);
+      console.log('Return flights response data:', response.data);
+      
+      const flightData = Array.isArray(response.data) ? response.data : [];
+      console.log('Return flights processed:', flightData.length);
+      
+      setReturnFlights(flightData);
+    } catch (error: any) {
+      console.error('=== RETURN FLIGHTS ERROR ===');
+      console.error('Return flight error:', error);
+      console.error('Return flight error response:', error.response);
       setReturnFlights([]);
-      Swal.fire('Failed to fetch return flights.');
+      Swal.fire({
+        title: 'Return Flights Error',
+        text: 'Failed to fetch return flights. You can still proceed with a one-way ticket.',
+        icon: 'warning',
+        background: '#282c34',
+        color: '#fff',
+      });
     } finally {
       setLoadingReturnFlights(false);
     }
@@ -286,6 +315,7 @@ const ListFlights: React.FC = () => {
     selectedOption: SingleValue<OptionType>,
     actionMeta: ActionMeta<OptionType>
   ) => {
+    setSearchError(null); // Clear any previous search errors
     if (actionMeta.name === 'from') {
       setSelectedFrom(selectedOption);
       if (selectedTo && selectedOption?.value === selectedTo?.value) {
@@ -310,13 +340,12 @@ const ListFlights: React.FC = () => {
     if (error !== '') {
       Swal.fire({
         icon: 'info',
-        title: 'Info',
+        title: 'Invalid Selection',
         text: 'Departure & Arrival Should Not Be Same!',
         background: '#06093b',
         confirmButtonColor: '#3085d6',
         color: '#ffffff',
       });
-      // Clear error after showing alert
       setTimeout(() => setError(''), 3000);
     }
   }, [error]);
@@ -325,6 +354,11 @@ const ListFlights: React.FC = () => {
   const handleInputChange = useCallback(
     debounce((inputValue: string) => {
       setError('');
+      setSearchError(null);
+      if (!inputValue.trim()) {
+        dispatch(setFilteredAirports(airports));
+        return;
+      }
       const filteredOptions = airports.filter((airport) =>
         airport.label.toLowerCase().includes(inputValue.toLowerCase())
       );
@@ -333,42 +367,58 @@ const ListFlights: React.FC = () => {
     [airports, dispatch]
   );
 
-  // Main search handler
+  // Main search handler - FIXED ERROR HANDLING
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    console.log('Search initiated with:', { 
-      selectedFrom, 
-      selectedTo, 
-      startDate, 
-      totalPassengers, 
-      passengers 
-    }); // Debug log
+    // Clear previous state
+    setSearchError(null);
+    setSearchPerformed(false);
+    dispatch(clearFlights());
+    
+    console.log('=== SEARCH DEBUG START ===');
+    console.log('Search initiated with:');
+    console.log('- selectedFrom:', selectedFrom);
+    console.log('- selectedTo:', selectedTo);
+    console.log('- startDate:', startDate);
+    console.log('- totalPassengers:', totalPassengers);
+    console.log('- passengers:', passengers);
 
     setLoadingFlights(true);
-    setSearchPerformed(false); // Reset search performed flag
 
     // Validation
     if (!selectedFrom || !selectedTo) {
-      Swal.fire('Please select both "From" and "To" locations.');
+      Swal.fire({
+        title: 'Missing Locations',
+        text: 'Please select both "From" and "To" locations.',
+        icon: 'warning',
+        background: '#282c34',
+        color: '#fff',
+      });
       setLoadingFlights(false);
       return;
     }
 
     if (!startDate) {
-      Swal.fire('Please select a departure date.');
+      Swal.fire({
+        title: 'Missing Date',
+        text: 'Please select a departure date.',
+        icon: 'warning',
+        background: '#282c34',
+        color: '#fff',
+      });
       setLoadingFlights(false);
       return;
     }
 
     if (totalPassengers === 0) {
       Swal.fire({
-        title: "Warning",
-        text: "Please select at least one passenger.",
-        icon: "warning",
-        background: "#1E3A8A",
-        color: "#fff",
-        confirmButtonColor: "#4F46E5",
+        title: 'Missing Passengers',
+        text: 'Please select at least one passenger.',
+        icon: 'warning',
+        background: '#1E3A8A',
+        color: '#fff',
+        confirmButtonColor: '#4F46E5',
       });
       setLoadingFlights(false);
       return;
@@ -378,142 +428,271 @@ const ListFlights: React.FC = () => {
     const to = selectedTo.label.split(' ')[0].toLowerCase();
     const searchRequest = { from, to, date: startDate };
 
-    console.log('Search request:', searchRequest); // Debug log
+    console.log('Search request payload:', searchRequest);
 
     // Prevent duplicate searches
     if (
       lastSearchRequest.current &&
       JSON.stringify(lastSearchRequest.current) === JSON.stringify(searchRequest)
     ) {
-      console.log('Duplicate search detected, skipping...'); // Debug log
+      console.log('Duplicate search detected, using cached results');
       setLoadingFlights(false);
+      setSearchPerformed(true);
       return;
     }
 
     lastSearchRequest.current = searchRequest;
 
+    console.log('Making API call to /searchFlights...');
+
+    // Show loading message
+    Swal.fire({
+      title: 'Searching Flights...',
+      text: 'Please wait while we find the best options for you.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      willOpen: () => {
+        Swal.showLoading();
+      },
+      background: '#282c34',
+      color: '#fff',
+    });
+
+    let searchSuccess = false;
+    let flightData: Flight[] = [];
+
     try {
-      console.log('Making API call to /searchFlights'); // Debug log
-      const response = await axiosInstance.post('/searchFlights', {
-        from,
-        to,
-        date: startDate,
-      });
+      console.log('API Request details:');
+      console.log('- URL: /searchFlights');
+      console.log('- Method: POST');
+      console.log('- Data:', searchRequest);
+      console.log('- Headers:', axiosInstance.defaults.headers.common);
 
-      console.log('Search response received:', response); // Debug log
-      console.log('Search data:', response.data); // Debug log
-
-      // Ensure data is an array
-      const flightData = Array.isArray(response.data) ? response.data : [];
+      const response = await axiosInstance.post('/searchFlights', searchRequest);
       
-      console.log('Dispatching flights to Redux:', flightData.length, 'flights'); // Debug log
+      console.log('=== API RESPONSE SUCCESS ===');
+      console.log('Response status:', response.status);
+      console.log('Response status text:', response.statusText);
+      console.log('Response headers:', response.headers);
+      console.log('Raw response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Is response data array:', Array.isArray(response.data));
 
-      // Smooth scroll to results
-      if (listingRef.current) {
-        listingRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      // Handle different response formats
+      if (response.status === 200) {
+        // Success case
+        searchSuccess = true;
+        
+        if (Array.isArray(response.data)) {
+          flightData = response.data;
+          console.log('Flights found in array:', flightData.length);
+        } else if (response.data && response.data.flights && Array.isArray(response.data.flights)) {
+          flightData = response.data.flights;
+          console.log('Flights found in response.flights:', flightData.length);
+        } else if (response.data && Array.isArray(response.data.data)) {
+          flightData = response.data.data;
+          console.log('Flights found in response.data:', flightData.length);
+        } else {
+          // Empty response or unexpected format
+          flightData = [];
+          console.log('No flights found in response, treating as empty array');
+        }
 
-      // Clear previous flights and set new ones
-      dispatch(clearFlights());
-      dispatch(setFlights(flightData as Flight[]));
-      
-      // Set search flags
-      setSearchPerformed(true);
-      
-      // Redux date actions
-      dispatch(setDate(startDate.toDateString()));
-      dispatch(setReturnDate(returnDate?.toDateString() || null));
+        console.log('Final flight data:', flightData);
+        console.log('First flight sample:', flightData[0]);
 
-      // Show success message if flights found
-      if (flightData.length > 0) {
-        Swal.fire({
-          title: `Found ${flightData.length} flight${flightData.length !== 1 ? 's' : ''}!`,
-          text: 'Scroll down to view available flights.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
-          background: '#282c34',
-          color: '#fff',
-        });
+        // Close loading
+        Swal.close();
+
+        // Smooth scroll to results
+        setTimeout(() => {
+          if (listingRef.current) {
+            listingRef.current.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "start" 
+            });
+          }
+        }, 100);
+
+        // Update state
+        setSearchPerformed(true);
+        setLoadingFlights(false);
+
+        // Dispatch to Redux
+        console.log('Dispatching', flightData.length, 'flights to Redux...');
+        dispatch(setFlights(flightData));
+        
+        // Set dates
+        dispatch(setDate(startDate.toDateString()));
+        dispatch(setReturnDate(returnDate?.toDateString() || null));
+
+        // Show results message
+        if (flightData.length > 0) {
+          setTimeout(() => {
+            Swal.fire({
+              title: `Found ${flightData.length} flight${flightData.length !== 1 ? 's' : ''}!`,
+              text: 'Great options available for your trip.',
+              icon: 'success',
+              timer: 2500,
+              showConfirmButton: false,
+              background: '#282c34',
+              color: '#fff',
+              toast: true,
+              position: 'top-end',
+            });
+          }, 500);
+        } else {
+          setTimeout(() => {
+            Swal.fire({
+              title: 'No Flights Available',
+              text: 'We couldn\'t find flights for your selected criteria. Try adjusting your search.',
+              icon: 'info',
+              background: '#282c34',
+              color: '#fff',
+            });
+          }, 500);
+        }
+
       } else {
-        Swal.fire({
-          title: 'No flights available',
-          text: 'Try adjusting your search criteria for better results.',
-          icon: 'info',
-          background: '#282c34',
-          color: '#fff',
-        });
+        // Non-200 status but no exception thrown
+        throw new Error(`Unexpected status code: ${response.status}`);
       }
 
     } catch (error: any) {
-      console.error('Search error:', error); // Debug log
-      console.error('Error response:', error.response); // Debug log
+      console.log('=== API RESPONSE ERROR ===');
+      console.error('Full error object:', error);
       
+      // Close loading
+      Swal.close();
+      
+      searchSuccess = false;
+      setLoadingFlights(false);
+      
+      // More detailed error handling
+      let errorMessage = 'An unexpected error occurred while searching for flights.';
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+        
+        const status = error.response.status;
+        if (status === 400) {
+          errorMessage = 'Invalid search criteria. Please check your selection.';
+        } else if (status === 404) {
+          errorMessage = 'Flight search service not found.';
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          errorMessage = `Server error (${status}). Please try again.`;
+        }
+      } else if (error.request) {
+        // Network error
+        console.error('Network error - no response received');
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        // Other error
+        console.error('Request setup error:', error.message);
+        errorMessage = error.message || 'An unknown error occurred.';
+      }
+      
+      console.error('Final error message:', errorMessage);
+      setSearchError(errorMessage);
+      
+      // Show error but don't clear the search performed state
       setSearchPerformed(true);
+      
       Swal.fire({
-        title: 'Search Failed',
-        text: error.response?.data?.message || 'Failed to search flights. Please try again.',
+        title: 'Search Error',
+        text: errorMessage,
         icon: 'error',
         background: '#282c34',
         color: '#fff',
+        confirmButtonColor: '#4F46E5',
       });
+
     } finally {
-      setLoadingFlights(false);
-      console.log('Search completed, loadingFlights set to false'); // Debug log
+      console.log('Search operation completed');
+      console.log('Final state - searchSuccess:', searchSuccess);
+      console.log('Final state - flightData length:', flightData.length);
+      console.log('Final state - loadingFlights:', false);
+      console.log('=== SEARCH DEBUG END ===');
     }
   };
 
   // Sort flights function
   const sortFlights = (flights: Flight[], criteria: string) => {
-    console.log('Sorting flights:', criteria, flights.length); // Debug log
+    if (!flights || flights.length === 0) {
+      console.log('No flights to sort');
+      return [];
+    }
+    
+    console.log('Sorting', flights.length, 'flights by:', criteria);
     const sorted = [...flights];
     
     switch (criteria) {
       case 'price':
-        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        return sorted.sort((a, b) => {
+          const priceA = a.price || 0;
+          const priceB = b.price || 0;
+          return priceA - priceB;
+        });
       case 'duration':
-        return sorted.sort((a, b) => 
-          (a.duration || '').localeCompare(b.duration || '')
-        );
+        return sorted.sort((a, b) => {
+          const durationA = a.duration || '';
+          const durationB = b.duration || '';
+          return durationA.localeCompare(durationB);
+        });
       case 'departureTime':
-        return sorted.sort((a, b) => 
-          (a.departureTime || '').localeCompare(b.departureTime || '')
-        );
+        return sorted.sort((a, b) => {
+          const timeA = a.departureTime || '';
+          const timeB = b.departureTime || '';
+          return timeA.localeCompare(timeB);
+        });
       default:
         return sorted;
     }
   };
 
-  // Derived sorted flights - only if search has been performed
+  // Determine if we should show results
   const shouldShowResults = searchPerformed && !loadingFlights;
+  const hasFlights = flights && flights.length > 0;
+  const hasError = searchError !== null;
   
-  const sortedFlights = shouldShowResults ? sortFlights(flights, sortOption) : [];
-  const sortedReturnFlights = shouldShowResults ? sortFlights(returnFlights, sortOption) : [];
+  // Only sort and paginate if we have valid data
+  const sortedFlights = hasFlights && shouldShowResults 
+    ? sortFlights(flights, sortOption) 
+    : [];
+    
+  const sortedReturnFlights = shouldShowResults 
+    ? sortFlights(returnFlights, sortOption) 
+    : [];
   
   const indexOfLastFlight = currentPage * flightsPerPage;
   const indexOfFirstFlight = indexOfLastFlight - flightsPerPage;
   const currentFlights = sortedFlights.slice(indexOfFirstFlight, indexOfLastFlight);
   const currentReturnFlights = sortedReturnFlights.slice(indexOfFirstFlight, indexOfLastFlight);
 
-  console.log('Display data:', { 
-    shouldShowResults, 
-    flightsLength: flights.length, 
-    currentFlightsLength: currentFlights.length,
-    currentPage,
-    searchPerformed,
-    loadingFlights
-  }); // Debug log
+  console.log('=== RENDER DEBUG ===');
+  console.log('shouldShowResults:', shouldShowResults);
+  console.log('hasFlights:', hasFlights);
+  console.log('hasError:', hasError);
+  console.log('flights.length:', flights.length);
+  console.log('currentFlights.length:', currentFlights.length);
+  console.log('===================');
 
   // Pagination
   const paginate = (pageNumber: number) => {
-    console.log('Paginating to page:', pageNumber); // Debug log
     setCurrentPage(pageNumber);
   };
 
-  // Reset pagination when switching tabs
+  // Reset pagination when switching tabs or sorting
   useEffect(() => {
     setCurrentPage(1);
-  }, [showMainFlights, showReturnFlights]);
+  }, [showMainFlights, showReturnFlights, sortOption]);
 
   // Animation variants
   const containerVariants = {
@@ -546,7 +725,7 @@ const ListFlights: React.FC = () => {
     }
   };
 
-  // Show results section only after search
+  // Show results section based on search state
   const showResultsSection = searchPerformed;
 
   return (
@@ -600,7 +779,7 @@ const ListFlights: React.FC = () => {
                     value={selectedFrom}
                     onChange={handleSelectChange}
                     onInputChange={handleInputChange}
-                    placeholder="From"
+                    placeholder="From where?"
                     className="react-select-container text-black"
                     classNamePrefix="react-select"
                     isSearchable
@@ -609,13 +788,17 @@ const ListFlights: React.FC = () => {
                         ...base,
                         background: 'rgba(255, 255, 255, 0.9)',
                         borderRadius: '0.5rem',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        border: selectedFrom ? '1px solid #4F46E5' : '1px solid rgba(255, 255, 255, 0.2)',
                         boxShadow: 'none',
                         minHeight: '48px'
                       }),
                       placeholder: (base) => ({
                         ...base,
                         color: 'rgba(0, 0, 0, 0.6)'
+                      }),
+                      indicatorSeparator: (base) => ({
+                        ...base,
+                        backgroundColor: 'transparent'
                       })
                     }}
                   />
@@ -625,7 +808,7 @@ const ListFlights: React.FC = () => {
                     value={selectedTo}
                     onChange={handleSelectChange}
                     onInputChange={handleInputChange}
-                    placeholder="To"
+                    placeholder="Going to?"
                     className="react-select-container text-black"
                     classNamePrefix="react-select"
                     isSearchable
@@ -634,35 +817,50 @@ const ListFlights: React.FC = () => {
                         ...base,
                         background: 'rgba(255, 255, 255, 0.9)',
                         borderRadius: '0.5rem',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        border: selectedTo ? '1px solid #4F46E5' : '1px solid rgba(255, 255, 255, 0.2)',
                         boxShadow: 'none',
                         minHeight: '48px'
                       }),
                       placeholder: (base) => ({
                         ...base,
                         color: 'rgba(0, 0, 0, 0.6)'
+                      }),
+                      indicatorSeparator: (base) => ({
+                        ...base,
+                        backgroundColor: 'transparent'
                       })
                     }}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date: Date | null) => setStartDate(date)}
-                    className="w-full p-3 rounded-lg text-black bg-white/90 border border-gray-300 focus:border-blue-500 focus:outline-none"
-                    placeholderText="Departure Date"
-                    minDate={new Date()}
-                    dateFormat="MMMM d, yyyy"
-                  />
-                  <DatePicker
-                    selected={returnDate}
-                    onChange={(date: Date | null) => setReturnDate(date)}
-                    className="w-full p-3 rounded-lg text-black bg-white/90 border border-gray-300 focus:border-blue-500 focus:outline-none"
-                    placeholderText="Return Date (Optional)"
-                    minDate={startDate || new Date()}
-                    dateFormat="MMMM d, yyyy"
-                  />
+                  <div>
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(date: Date | null) => {
+                        setStartDate(date);
+                        setSearchError(null);
+                      }}
+                      className="w-full p-3 rounded-lg text-black bg-white/90 border border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholderText="Departure Date"
+                      minDate={new Date()}
+                      dateFormat="MMMM d, yyyy"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <DatePicker
+                      selected={returnDate}
+                      onChange={(date: Date | null) => {
+                        setReturnDate(date);
+                        setSearchError(null);
+                      }}
+                      className="w-full p-3 rounded-lg text-black bg-white/90 border border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholderText="Return Date (Optional)"
+                      minDate={startDate || new Date()}
+                      dateFormat="MMMM d, yyyy"
+                    />
+                  </div>
                   <Select
                     name="sort"
                     options={[
@@ -670,10 +868,13 @@ const ListFlights: React.FC = () => {
                       { value: 'duration', label: 'Sort by Duration (Shortest First)' },
                       { value: 'departureTime', label: 'Sort by Departure Time (Earliest First)' },
                     ]}
-                    value={{ value: sortOption, label: `Sort by ${sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}` }}
+                    value={{ 
+                      value: sortOption, 
+                      label: `Sort by ${sortOption === 'price' ? 'Price' : sortOption === 'duration' ? 'Duration' : 'Departure Time'}`
+                    }}
                     onChange={(option: SingleValue<OptionType>) => {
                       setSortOption(option?.value || 'price');
-                      setCurrentPage(1); // Reset pagination on sort change
+                      setSearchError(null);
                     }}
                     className="react-select-container"
                     classNamePrefix="react-select"
@@ -690,6 +891,10 @@ const ListFlights: React.FC = () => {
                       placeholder: (base) => ({
                         ...base,
                         color: 'rgba(0, 0, 0, 0.6)'
+                      }),
+                      indicatorSeparator: (base) => ({
+                        ...base,
+                        backgroundColor: 'transparent'
                       })
                     }}
                   />
@@ -704,7 +909,13 @@ const ListFlights: React.FC = () => {
                     className="w-full p-3 bg-white/90 rounded-lg font-semibold text-gray-800 hover:bg-white/100 transition-all border border-gray-300 flex items-center justify-between"
                   >
                     <span>Passenger Details</span>
-                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      totalPassengers === 0 
+                        ? 'bg-red-500 text-white' 
+                        : totalPassengers < 6 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-yellow-500 text-white'
+                    }`}>
                       {totalPassengers}
                     </span>
                   </motion.button>
@@ -724,13 +935,13 @@ const ListFlights: React.FC = () => {
                             { label: 'Senior Citizens (65+)', type: 'seniors' as const },
                             { label: 'Children (2-12)', type: 'children' as const },
                             { label: 'Infants (<2)', type: 'infants' as const },
-                          ].map(({ label, type }) => (
+                          ].map(({ label, type }, index) => (
                             <motion.div
                               key={type}
                               className="flex justify-between items-center py-2"
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.1 }}
+                              transition={{ delay: index * 0.05 }}
                             >
                               <span className="font-medium text-gray-700">{label}</span>
                               <div className="flex items-center space-x-3">
@@ -768,8 +979,15 @@ const ListFlights: React.FC = () => {
                               transition={{ delay: 0.2 }}
                             >
                               <p className="text-sm font-semibold text-gray-800">
-                                Total: <span className="text-blue-600">{totalPassengers}</span> passenger{totalPassengers !== 1 ? 's' : ''}
+                                Total: <span className={`font-bold ${totalPassengers <= 6 ? 'text-green-600' : 'text-yellow-600'}`}>
+                                  {totalPassengers}
+                                </span> passenger{totalPassengers !== 1 ? 's' : ''}
                               </p>
+                              {totalPassengers > 6 && (
+                                <p className="text-xs text-yellow-600 mt-1">
+                                  Note: Large groups may have limited availability
+                                </p>
+                              )}
                             </motion.div>
                           )}
                         </div>
@@ -778,11 +996,42 @@ const ListFlights: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
+                {/* Search Error Display */}
+                {searchError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-500/20 border border-red-500/50 text-red-100 p-4 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm">{searchError}</span>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      className="text-red-200 hover:text-red-100 text-sm mt-2 underline"
+                      onClick={() => {
+                        setSearchError(null);
+                        setSearchPerformed(false);
+                        dispatch(clearFlights());
+                      }}
+                    >
+                      Clear Error and Try Again
+                    </motion.button>
+                  </motion.div>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-lg"
+                  className={`w-full p-4 rounded-lg shadow-lg transition-all flex items-center justify-center space-x-2 text-lg font-bold ${
+                    loadingFlights || !selectedFrom || !selectedTo || !startDate || totalPassengers === 0
+                      ? 'bg-gray-500 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
+                  }`}
                   disabled={loadingFlights || !selectedFrom || !selectedTo || !startDate || totalPassengers === 0}
                 >
                   {loadingFlights ? (
@@ -793,17 +1042,23 @@ const ListFlights: React.FC = () => {
                   ) : (
                     <>
                       <span>✈️</span>
-                      <span>Search Flights</span>
+                      <span>Find Flights</span>
                     </>
                   )}
                 </motion.button>
+
+                {/* Form Requirements Info */}
+                <div className="text-xs text-white/70 text-center space-y-1">
+                  <p>✓ Select departure and arrival airports</p>
+                  <p>✓ Choose your travel date{totalPassengers > 0 && ` for ${totalPassengers} passenger${totalPassengers !== 1 ? 's' : ''}`}</p>
+                </div>
               </form>
             )}
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Flight Results Section - Only show after search */}
+      {/* Flight Results Section */}
       {showResultsSection && (
         <motion.div 
           ref={listingRef}
@@ -821,14 +1076,18 @@ const ListFlights: React.FC = () => {
               transition={{ delay: 0.2 }}
             >
               <h2 className="text-3xl font-bold text-white mb-2">
-                Your Flight Results
+                {hasError ? 'Search Results' : 'Your Flight Results'}
               </h2>
-              <p className="text-gray-300">
-                {showMainFlights 
-                  ? `${flights.length} flight${flights.length !== 1 ? 's' : ''} found for your trip`
-                  : `${returnFlights.length} return flight${returnFlights.length !== 1 ? 's' : ''} available`
-                }
-              </p>
+              {hasError ? (
+                <p className="text-red-400">Search completed with issues - see details below</p>
+              ) : (
+                <p className="text-gray-300">
+                  {showMainFlights 
+                    ? `${flights.length} option${flights.length !== 1 ? 's' : ''} found for your trip`
+                    : `${returnFlights.length} return option${returnFlights.length !== 1 ? 's' : ''} available`
+                  }
+                </p>
+              )}
             </motion.div>
 
             {/* Flight Type Toggle */}
@@ -846,7 +1105,7 @@ const ListFlights: React.FC = () => {
                 }`}
                 onClick={() => toggleFlights('main')}
               >
-                Outbound Flights ({flights.length})
+                Outbound ({flights.length})
               </motion.button>
               {returnDate && (
                 <motion.button
@@ -859,34 +1118,54 @@ const ListFlights: React.FC = () => {
                   }`}
                   onClick={() => toggleFlights('return')}
                 >
-                  Return Flights ({returnFlights.length})
+                  Return ({returnFlights.length})
                 </motion.button>
               )}
             </motion.div>
 
-            {/* Flight Cards */}
-            <AnimatePresence mode="wait">
-              {showMainFlights && (
+            {/* Main Flights Display */}
+            {showMainFlights && (
+              <AnimatePresence mode="wait">
                 <motion.div
-                  key="main-flights" 
+                  key="main-flights"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
                   className="space-y-6"
                 >
-                  {loadingFlights ? (
+                  {/* Loading State */}
+                  {loadingFlights && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="flex flex-col items-center justify-center py-24 space-y-4"
                     >
                       <LoadingSpinner size={80} color="#4F46E5" />
-                      <p className="text-white text-lg">Searching for flights...</p>
-                      <p className="text-gray-400 text-sm">This may take a few moments</p>
+                      <p className="text-white text-lg">Still searching for the best flights...</p>
+                      <p className="text-gray-400 text-sm">Please wait</p>
                     </motion.div>
-                  ) : flights.length > 0 ? (
+                  )}
+
+                  {/* Success with Flights */}
+                  {!loadingFlights && hasFlights && !hasError && (
                     <>
+                      <motion.div
+                        className="bg-green-500/20 border border-green-500/30 text-green-100 p-4 rounded-lg mb-6"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm">
+                            Successfully found {flights.length} flight{flights.length !== 1 ? 's' : ''}!
+                          </span>
+                        </div>
+                      </motion.div>
+
                       {currentFlights.map((flight, index) => (
                         <motion.div
                           key={`${flight.flightNumber}-${index}`}
@@ -902,9 +1181,9 @@ const ListFlights: React.FC = () => {
                                 {flight.departureTime} - {flight.arrivalTime}
                               </div>
                               <div className="text-lg text-gray-300">
-                                {flight.departureAirport} 
+                                <span className="text-blue-300">{flight.departureAirport}</span>
                                 <span className="mx-2 text-white">→</span> 
-                                {flight.arrivalAirport}
+                                <span className="text-blue-300">{flight.arrivalAirport}</span>
                               </div>
                               <div className="flex items-center space-x-4 text-sm text-gray-400">
                                 <span className="flex items-center">
@@ -914,17 +1193,21 @@ const ListFlights: React.FC = () => {
                                   {flight.duration}
                                 </span>
                                 <span>•</span>
-                                <span>
-                                  {flight.stops === '0' ? 'Direct' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}
+                                <span className={flight.stops === '0' ? 'text-green-400' : 'text-gray-400'}>
+                                  {flight.stops === '0' ? 'Direct Flight' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}
                                 </span>
                               </div>
-                              <div className="text-sm text-gray-400 bg-white/10 px-3 py-1 rounded-full inline-block">
-                                Flight: {flight.flightNumber} • {flight.airline || 'Various Airlines'}
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                                  {flight.flightNumber}
+                                </span>
+                                <span>•</span>
+                                <span className="text-gray-300">{flight.airline || 'Various Airlines'}</span>
                               </div>
                             </div>
                             <div className="text-right space-y-3 min-w-fit">
                               <div className="text-3xl font-bold text-white">
-                                ₹{flight.price?.toLocaleString() || 'N/A'}
+                                ₹{(flight.price || 0).toLocaleString()}
                               </div>
                               <div className="text-sm text-green-400 font-medium bg-green-500/20 px-2 py-1 rounded">
                                 Save ₹750 with INTSAVER
@@ -932,9 +1215,11 @@ const ListFlights: React.FC = () => {
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="px-6 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all w-full sm:w-auto text-sm"
+                                className="px-6 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all w-full sm:w-auto text-sm tracking-wide"
                                 onClick={() => {
-                                  console.log('Booking flight:', flight); // Debug log
+                                  console.log('=== BOOKING DEBUG ===');
+                                  console.log('Booking flight:', flight);
+                                  console.log('Passengers:', passengers);
                                   dispatch(setBookDetail(flight));
                                   dispatch(setSelectedPassengers(passengers));
                                   dispatch(clearSelectedSeat());
@@ -950,161 +1235,307 @@ const ListFlights: React.FC = () => {
                           </div>
                         </motion.div>
                       ))}
-                      
-                      {/* Show all flights if fewer than flightsPerPage */}
-                      {flights.length <= flightsPerPage && flights.length > 0 && (
+
+                      {/* All flights shown message */}
+                      {flights.length > 0 && flights.length <= flightsPerPage && (
                         <motion.div
-                          className="text-center py-8"
+                          className="text-center py-8 bg-white/5 rounded-lg"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                         >
-                          <p className="text-gray-400">
-                            Showing all {flights.length} available flight{flights.length !== 1 ? 's' : ''}
+                          <p className="text-gray-300">
+                            ✅ Showing all {flights.length} available flight{flights.length !== 1 ? 's' : ''}
                           </p>
                         </motion.div>
                       )}
                     </>
-                  ) : (
+                  )}
+
+                  {/* Error State with Flights */}
+                  {!loadingFlights && hasError && hasFlights && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center py-20 text-center"
+                      className="space-y-6"
                     >
-                      <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl mb-6 flex items-center justify-center">
-                        <span className="text-6xl">✈️</span>
-                      </div>
-                      <h3 className="text-2xl font-semibold text-white mb-2">
-                        No Flights Available
-                      </h3>
-                      <p className="text-gray-400 max-w-md">
-                        We couldn't find any flights for your selected route and date. 
-                        Try adjusting your search criteria for better results.
-                      </p>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          setSearchPerformed(false);
-                          setSelectedFrom(null);
-                          setSelectedTo(null);
-                          setStartDate(null);
-                          setReturnDate(null);
-                          setPassengers({ adults: 0, seniors: 0, children: 0, infants: 0 });
-                          dispatch(clearFlights());
-                          if (listingRef.current) {
-                            listingRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }
-                        }}
-                        className="mt-6 px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all"
-                      >
-                        Modify Search
-                      </motion.button>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-
-              {showReturnFlights && (
-                <motion.div
-                  key="return-flights"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-6"
-                >
-                  {loadingReturnFlights ? (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center py-24 space-y-4"
-                    >
-                      <PlaneLoader />
-                      <p className="text-white text-lg">Loading return flight options...</p>
-                    </motion.div>
-                  ) : returnFlights.length > 0 ? (
-                    currentReturnFlights.map((flight, index) => (
                       <motion.div
-                        key={`${flight.flightNumber}-${index}`}
-                        className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-white/10"
-                        whileHover={{ scale: 1.02 }}
-                        initial={{ opacity: 0, y: 20 }}
+                        className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-100 p-6 rounded-lg"
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
                       >
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
-                          <div className="space-y-3 flex-1">
-                            <div className="text-2xl font-bold text-white">
-                              {flight.departureTime} - {flight.arrivalTime}
-                            </div>
-                            <div className="text-lg text-gray-300">
-                              {flight.departureAirport} 
-                              <span className="mx-2 text-white">→</span> 
-                              {flight.arrivalAirport}
-                            </div>
-                            <div className="flex items-center space-x-4 text-sm text-gray-400">
-                              <span className="flex items-center">
-                                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                </svg>
-                                {flight.duration}
-                              </span>
-                              <span>•</span>
-                              <span>
-                                {flight.stops === '0' ? 'Direct' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}
-                              </span>
-                            </div>
-                            <div className="text-sm text-gray-400 bg-white/10 px-3 py-1 rounded-full inline-block">
-                              Flight: {flight.flightNumber} • {flight.airline || 'Various Airlines'}
-                            </div>
-                          </div>
-                          <div className="text-right space-y-3 min-w-fit">
-                            <div className="text-3xl font-bold text-white">
-                              ₹{flight.price?.toLocaleString() || 'N/A'}
-                            </div>
-                            <div className="text-sm text-green-400 font-medium bg-green-500/20 px-2 py-1 rounded">
-                              Save ₹750 with INTSAVER
-                            </div>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="px-6 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold rounded-full shadow-lg hover:from-blue-500 hover:to-blue-600 transition-all w-full sm:w-auto text-sm"
-                              onClick={() => handleSelectReturnFlight(flight)}
-                            >
-                              Select Return
-                            </motion.button>
-                            <div className="text-xs text-gray-400">
-                              Partially refundable
-                            </div>
+                        <div className="flex items-center space-x-3">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <div>
+                            <h3 className="text-lg font-semibold">Partial Results</h3>
+                            <p className="text-sm">We encountered an issue but still found {flights.length} flight{flights.length !== 1 ? 's' : ''}.</p>
+                            <p className="text-xs mt-1">{searchError}</p>
                           </div>
                         </div>
                       </motion.div>
-                    ))
-                  ) : (
+
+                      {/* Show available flights */}
+                      {currentFlights.map((flight, index) => (
+                        <motion.div
+                          key={`${flight.flightNumber}-${index}`}
+                          className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-yellow-500/20"
+                          whileHover={{ scale: 1.02 }} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                        >
+                          {/* Same flight card structure as above */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+                            <div className="space-y-3 flex-1">
+                              <div className="text-2xl font-bold text-white">
+                                {flight.departureTime} - {flight.arrivalTime}
+                              </div>
+                              <div className="text-lg text-gray-300">
+                                <span className="text-blue-300">{flight.departureAirport}</span>
+                                <span className="mx-2 text-white">→</span> 
+                                <span className="text-blue-300">{flight.arrivalAirport}</span>
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <span className="flex items-center">
+                                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                  {flight.duration}
+                                </span>
+                                <span>•</span>
+                                <span className={flight.stops === '0' ? 'text-green-400' : 'text-gray-400'}>
+                                  {flight.stops === '0' ? 'Direct Flight' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                                  {flight.flightNumber}
+                                </span>
+                                <span>•</span>
+                                <span className="text-gray-300">{flight.airline || 'Various Airlines'}</span>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-3 min-w-fit">
+                              <div className="text-3xl font-bold text-white">
+                                ₹{(flight.price || 0).toLocaleString()}
+                              </div>
+                              <div className="text-sm text-green-400 font-medium bg-green-500/20 px-2 py-1 rounded">
+                                Save ₹750 with INTSAVER
+                              </div>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-6 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all w-full sm:w-auto text-sm tracking-wide"
+                                onClick={() => {
+                                  dispatch(setBookDetail(flight));
+                                  dispatch(setSelectedPassengers(passengers));
+                                  dispatch(clearSelectedSeat());
+                                  router.push('/user/flight/selectSeats');
+                                }}
+                              >
+                                Book Now
+                              </motion.button>
+                              <div className="text-xs text-gray-400">
+                                Partially refundable
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {/* No Flights */}
+                  {!loadingFlights && !hasFlights && !hasError && searchPerformed && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center py-20 text-center"
+                      className="flex flex-col items-center justify-center py-20 text-center space-y-4"
                     >
-                      <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl mb-6 flex items-center justify-center">
-                        <span className="text-6xl">↩️</span>
+                      <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl flex items-center justify-center mb-6">
+                        <span className="text-6xl">✈️</span>
                       </div>
-                      <h3 className="text-2xl font-semibold text-white mb-2">
-                        No Return Flights Available
-                      </h3>
-                      <p className="text-gray-400 max-w-md">
-                        We couldn't find any return flights for your selected dates. 
-                        Consider adjusting your return date or try a different route.
-                      </p>
+                      <div>
+                        <h3 className="text-2xl font-semibold text-white mb-2">
+                          No Flights Available
+                        </h3>
+                        <p className="text-gray-400 max-w-md mb-6">
+                          We couldn't find any flights matching your criteria for{' '}
+                          <span className="font-semibold text-white">{selectedFrom?.label} to {selectedTo?.label}</span> on{' '}
+                          <span className="font-semibold text-white">{startDate?.toLocaleDateString()}</span>.
+                        </p>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setSearchPerformed(false);
+                            setSearchError(null);
+                            setSelectedFrom(null);
+                            setSelectedTo(null);
+                            setStartDate(null);
+                            setReturnDate(null);
+                            setPassengers({ adults: 0, seniors: 0, children: 0, infants: 0 });
+                            dispatch(clearFlights());
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-8 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all"
+                        >
+                          Modify Search
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Pure Error State */}
+                  {!loadingFlights && !hasFlights && hasError && searchPerformed && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-col items-center justify-center py-20 text-center space-y-4"
+                    >
+                      <div className="w-64 h-48 bg-red-500/10 rounded-lg border-2 border-red-500/20 shadow-2xl flex items-center justify-center mb-6">
+                        <svg className="w-16 h-16 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-semibold text-red-300 mb-2">Search Failed</h3>
+                        <p className="text-gray-400 max-w-md mb-6">
+                          We encountered an issue while searching for flights. No results were returned.
+                        </p>
+                        <p className="text-red-300 font-medium mb-4 max-w-md">
+                          {searchError}
+                        </p>
+                        <div className="space-x-3">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setSearchError(null);
+                              setSearchPerformed(false);
+                              dispatch(clearFlights());
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all"
+                          >
+                            Try New Search
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => window.location.reload()}
+                            className="px-6 py-3 bg-gray-600 text-white font-bold rounded-full hover:bg-gray-500 transition-all"
+                          >
+                            Refresh Page
+                          </motion.button>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </motion.div>
-              )}
-            </AnimatePresence>
+              </AnimatePresence>
+            )}
 
-            {/* Pagination - Only show if there are flights and pagination is needed */}
-            {((showMainFlights && flights.length > flightsPerPage) || 
-              (showReturnFlights && returnFlights.length > flightsPerPage)) && !loadingFlights && (
+            {/* Return Flights Display */}
+            {showReturnFlights && (
+              <motion.div
+                key="return-flights"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {loadingReturnFlights ? (
+                  <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                    <PlaneLoader />
+                    <p className="text-white text-lg">Loading return flight options...</p>
+                  </div>
+                ) : returnFlights.length > 0 ? (
+                  returnFlights.map((flight, index) => (
+                    <motion.div
+                      key={`${flight.flightNumber}-${index}`}
+                      className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-white/10"
+                      whileHover={{ scale: 1.02 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                    >
+                      {/* Similar structure to main flights but with return styling */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+                        <div className="space-y-3 flex-1">
+                          <div className="text-2xl font-bold text-white">
+                            {flight.departureTime} - {flight.arrivalTime}
+                          </div>
+                          <div className="text-lg text-gray-300">
+                            <span className="text-purple-300">{flight.departureAirport}</span>
+                            <span className="mx-2 text-white">→</span> 
+                            <span className="text-purple-300">{flight.arrivalAirport}</span>
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                              {flight.duration}
+                            </span>
+                            <span>•</span>
+                            <span className={flight.stops === '0' ? 'text-green-400' : 'text-gray-400'}>
+                              {flight.stops === '0' ? 'Direct Flight' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
+                            <span className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full">
+                              {flight.flightNumber}
+                            </span>
+                            <span>•</span>
+                            <span className="text-gray-300">{flight.airline || 'Various Airlines'}</span>
+                          </div>
+                        </div>
+                        <div className="text-right space-y-3 min-w-fit">
+                          <div className="text-3xl font-bold text-white">
+                            ₹{(flight.price || 0).toLocaleString()}
+                          </div>
+                          <div className="text-sm text-green-400 font-medium bg-green-500/20 px-2 py-1 rounded">
+                            Save ₹750 with INTSAVER
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-6 py-3 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all w-full sm:w-auto text-sm tracking-wide"
+                            onClick={() => handleSelectReturnFlight(flight)}
+                          >
+                            Select Return
+                          </motion.button>
+                          <div className="text-xs text-gray-400">
+                            Partially refundable
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : !loadingReturnFlights && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                    <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl flex items-center justify-center mb-6">
+                      <span className="text-6xl">↩️</span>
+                    </div>
+                    <h3 className="text-2xl font-semibold text-white mb-2">
+                      No Return Flights Available
+                    </h3>
+                    <p className="text-gray-400 max-w-md">
+                      We couldn't find any return flights for your selected dates. 
+                      You can still book a one-way ticket or adjust your return date.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Pagination */}
+            {((showMainFlights && hasFlights && flights.length > flightsPerPage) || 
+              (showReturnFlights && returnFlights.length > flightsPerPage)) && 
+              !loadingFlights && !hasError && (
               <motion.div
                 className="flex justify-center mt-12"
                 initial={{ opacity: 0, y: 20 }}
@@ -1141,16 +1572,26 @@ const ListFlights: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Showing X of Y flights info */}
-            {((showMainFlights && flights.length > 0) || (showReturnFlights && returnFlights.length > 0)) && !loadingFlights && (
+            {/* Results Info */}
+            {shouldShowResults && !loadingFlights && (
               <motion.div
                 className="text-center mt-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-gray-400 text-sm">
-                  Showing {showMainFlights ? currentFlights.length : currentReturnFlights.length} of {showMainFlights ? flights.length : returnFlights.length} results
-                </p>
+                {hasFlights && !hasError && (
+                  <p className="text-gray-400 text-sm">
+                    Showing {currentFlights.length} of {flights.length} results 
+                    <span className="ml-2 text-blue-400">
+                      {showMainFlights ? `• ${selectedFrom?.label || ''} → ${selectedTo?.label || ''}` : ''}
+                    </span>
+                  </p>
+                )}
+                {hasError && !hasFlights && (
+                  <p className="text-red-400 text-sm font-medium">
+                    ⚠️ {searchError}
+                  </p>
+                )}
               </motion.div>
             )}
           </div>
