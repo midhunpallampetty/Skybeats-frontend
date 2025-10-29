@@ -10,7 +10,6 @@ import debounce from 'lodash.debounce';
 import { setBookDetail } from '@/redux/slices/bookdetailSlice';
 import { Flight } from '../../../interfaces/flight';
 import Swal from 'sweetalert2';
-import { TailSpin } from 'react-loader-spinner';
 import Image from 'next/image';
 import { clearSelectedSeat } from '@/redux/slices/selectedSeat';
 import axiosInstance from '@/pages/api/utils/axiosInstance';
@@ -25,24 +24,59 @@ import { OptionType } from '@/interfaces/OptionType';
 import { useRouter } from 'next/router';
 import { clearSelectedReturnFlight, selectReturnFlight } from '@/redux/slices/returnFlightSlice';
 
+// Dynamic import for TailSpin to disable SSR
+const TailSpin = dynamic(
+  () => import('react-loader-spinner').then(mod => ({ default: mod.TailSpin })),
+  { ssr: false }
+);
+
+// Custom CSS-based spinner for SSR compatibility
+const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ 
+  size = 80, 
+  color = '#4F46E5' 
+}) => {
+  return (
+    <div className="flex justify-center items-center space-x-2">
+      <div 
+        className="animate-spin rounded-full border-4 border-solid border-current border-r-transparent" 
+        style={{ 
+          width: `${size}px`, 
+          height: `${size}px`, 
+          borderColor: color,
+          borderRightColor: 'transparent'
+        }}
+      ></div>
+      <span className="text-white text-lg font-medium">Loading...</span>
+    </div>
+  );
+};
+
 // Custom SVG airplane loader for SSR and client-side
 function PlaneLoader() {
   return (
     <div className="flex justify-center py-24">
-      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-        <g>
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 60 60"
-            to="360 60 60"
-            dur="1s"
-            repeatCount="indefinite"
+      <div className="relative">
+        <svg 
+          width="120" 
+          height="120" 
+          viewBox="0 0 120 120" 
+          fill="none"
+          className="animate-spin"
+        >
+          <path 
+            d="M60 20 L75 80 L60 70 L45 80 Z" 
+            fill="#4F46E5" 
           />
-          <path d="M60 20 L75 80 L60 70 L45 80 Z" fill="#4F46E5" />
-          <rect x="57" y="70" width="6" height="30" rx="3" fill="#3B82F6" />
-        </g>
-      </svg>
+          <rect 
+            x="57" 
+            y="70" 
+            width="6" 
+            height="30" 
+            rx="3" 
+            fill="#3B82F6" 
+          />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -270,6 +304,8 @@ const ListFlights: React.FC = () => {
         confirmButtonColor: '#3085d6',
         color: '#ffffff',
       });
+      // Clear error after showing alert
+      setTimeout(() => setError(''), 3000);
     }
   }, [error]);
 
@@ -572,7 +608,7 @@ const ListFlights: React.FC = () => {
                                   whileTap={{ scale: 0.9 }}
                                   type="button"
                                   onClick={() => decrement(type)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   disabled={passengers[type] === 0}
                                 >
                                   -
@@ -585,7 +621,7 @@ const ListFlights: React.FC = () => {
                                   whileTap={{ scale: 0.9 }}
                                   type="button"
                                   onClick={() => increment(type)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   disabled={totalPassengers >= 10}
                                 >
                                   +
@@ -593,6 +629,13 @@ const ListFlights: React.FC = () => {
                               </div>
                             </motion.div>
                           ))}
+                          {totalPassengers > 0 && (
+                            <div className="pt-2 border-t border-gray-200">
+                              <p className="text-sm text-gray-600">
+                                Total: {totalPassengers} passenger{totalPassengers !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -603,11 +646,14 @@ const ListFlights: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loadingFlights}
+                  className="w-full p-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-lg shadow-lg hover:from-green-500 hover:to-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  disabled={loadingFlights || !selectedFrom || !selectedTo || !startDate || totalPassengers === 0}
                 >
                   {loadingFlights ? (
-                    <TailSpin height={24} width={24} color="#fff" ariaLabel="loading" visible={true} />
+                    <>
+                      <LoadingSpinner size={20} color="#fff" />
+                      <span>Searching...</span>
+                    </>
                   ) : (
                     'Search Flights'
                   )}
@@ -622,6 +668,7 @@ const ListFlights: React.FC = () => {
       <motion.div 
         className="relative bg-gray-900 min-h-screen py-20"
         variants={fadeIn}
+        ref={listingRef}
       >
         <div className="container mx-auto px-4">
           {/* Flight Type Toggle */}
@@ -638,7 +685,6 @@ const ListFlights: React.FC = () => {
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
               onClick={() => toggleFlights('main')}
-              ref={listingRef}
             >
               Outbound Flights ({flights.length})
             </motion.button>
@@ -670,28 +716,19 @@ const ListFlights: React.FC = () => {
               >
                 {loadingFlights ? (
                   <div className="flex justify-center py-24">
-                    <div className="flex flex-col items-center space-y-4">
-                      <TailSpin
-                        height={80}
-                        width={80}
-                        color="#4F46E5"
-                        ariaLabel="tail-spin-loading"
-                        visible={true}
-                      />
-                      <p className="text-white text-lg">Searching flights...</p>
-                    </div>
+                    <LoadingSpinner size={80} color="#4F46E5" />
                   </div>
                 ) : currentFlights.length > 0 ? (
-                  currentFlights.map((flight) => (
+                  currentFlights.map((flight, index) => (
                     <motion.div
                       key={flight.flightNumber}
                       className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-white/10"
                       whileHover={{ scale: 1.02 }} 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-6">
                         <div className="space-y-3 flex-1">
                           <div className="text-2xl font-bold text-white">
                             {flight.departureTime} - {flight.arrivalTime}
@@ -699,24 +736,26 @@ const ListFlights: React.FC = () => {
                           <div className="text-lg text-gray-300">
                             {flight.departureAirport} → {flight.arrivalAirport}
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Duration: {flight.duration} | {flight.stops} stops
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
+                            <span>Duration: {flight.duration}</span>
+                            <span>•</span>
+                            <span>{flight.stops === '0' ? 'Direct' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}</span>
                           </div>
                           <div className="text-sm text-gray-400">
                             Flight: {flight.flightNumber} • {flight.airline || 'Various Airlines'}
                           </div>
                         </div>
-                        <div className="text-right space-y-3 ml-6">
+                        <div className="text-right space-y-3 min-w-0">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price.toLocaleString()}
                           </div>
-                          <div className="text-sm text-green-400">
+                          <div className="text-sm text-green-400 font-medium">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all"
+                            className="px-8 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full shadow-lg hover:from-green-500 hover:to-green-600 transition-all w-full sm:w-auto"
                             onClick={() => {
                               dispatch(setBookDetail(flight));
                               dispatch(setSelectedPassengers(passengers));
@@ -726,31 +765,27 @@ const ListFlights: React.FC = () => {
                           >
                             Book Now
                           </motion.button>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400">
                             Partially refundable
                           </div>
                         </div>
                       </div>
                     </motion.div>
                   ))
-                ) : !loadingFlights ? (
+                ) : !loadingFlights && flights.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="flex flex-col items-center justify-center py-20"
                   >
-                    <Image
-                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                      alt="No Flights Available"
-                      width={400}
-                      height={300}
-                      className="rounded-lg shadow-2xl mb-6"
-                    />
+                    <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl mb-6 flex items-center justify-center">
+                      <span className="text-gray-400 text-lg">✈️</span>
+                    </div>
                     <p className="text-2xl font-semibold text-white">
                       No Flights Available
                     </p>
-                    <p className="text-gray-400 mt-2">
-                      Try adjusting your search criteria
+                    <p className="text-gray-400 mt-2 text-center max-w-md">
+                      Try adjusting your search criteria, dates, or destinations to find available flights.
                     </p>
                   </motion.div>
                 ) : null}
@@ -773,16 +808,16 @@ const ListFlights: React.FC = () => {
                     </div>
                   </div>
                 ) : currentReturnFlights.length > 0 ? (
-                  currentReturnFlights.map((flight) => (
+                  currentReturnFlights.map((flight, index) => (
                     <motion.div
                       key={flight.flightNumber}
                       className="bg-white/5 backdrop-blur-lg rounded-xl p-6 shadow-xl hover:bg-white/10 transition-all border border-white/10"
                       whileHover={{ scale: 1.02 }}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-6">
                         <div className="space-y-3 flex-1">
                           <div className="text-2xl font-bold text-white">
                             {flight.departureTime} - {flight.arrivalTime}
@@ -790,29 +825,31 @@ const ListFlights: React.FC = () => {
                           <div className="text-lg text-gray-300">
                             {flight.departureAirport} → {flight.arrivalAirport}
                           </div>
-                          <div className="text-sm text-gray-400">
-                            Duration: {flight.duration} | {flight.stops} stops
+                          <div className="flex items-center space-x-4 text-sm text-gray-400">
+                            <span>Duration: {flight.duration}</span>
+                            <span>•</span>
+                            <span>{flight.stops === '0' ? 'Direct' : `${flight.stops} stop${flight.stops !== '1' ? 's' : ''}`}</span>
                           </div>
                           <div className="text-sm text-gray-400">
                             Flight: {flight.flightNumber} • {flight.airline || 'Various Airlines'}
                           </div>
                         </div>
-                        <div className="text-right space-y-3 ml-6">
+                        <div className="text-right space-y-3 min-w-0">
                           <div className="text-3xl font-bold text-white">
                             ₹{flight.price.toLocaleString()}
                           </div>
-                          <div className="text-sm text-green-400">
+                          <div className="text-sm text-green-400 font-medium">
                             Save ₹750 with INTSAVER
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-8 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold rounded-full shadow-lg hover:from-blue-500 hover:to-blue-600 transition-all"
+                            className="px-8 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold rounded-full shadow-lg hover:from-blue-500 hover:to-blue-600 transition-all w-full sm:w-auto"
                             onClick={() => handleSelectReturnFlight(flight)}
                           >
                             Select Return Flight
                           </motion.button>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs text-gray-400">
                             Partially refundable
                           </div>
                         </div>
@@ -825,18 +862,14 @@ const ListFlights: React.FC = () => {
                     animate={{ opacity: 1 }}
                     className="flex flex-col items-center justify-center py-20"
                   >
-                    <Image
-                      src="https://airline-datacenter.s3.ap-south-1.amazonaws.com/de9dc8d1-fd3b-44a4-b095-d0e4f3a544b6.jpeg"
-                      alt="No Return Flights Available"
-                      width={400}
-                      height={300}
-                      className="rounded-lg shadow-2xl mb-6"
-                    />
+                    <div className="w-64 h-48 bg-white/10 rounded-lg shadow-2xl mb-6 flex items-center justify-center">
+                      <span className="text-gray-400 text-lg">✈️</span>
+                    </div>
                     <p className="text-2xl font-semibold text-white">
                       No Return Flights Available
                     </p>
-                    <p className="text-gray-400 mt-2">
-                      Try adjusting your return date or destinations
+                    <p className="text-gray-400 mt-2 text-center max-w-md">
+                      Try adjusting your return date or destinations to find available flights.
                     </p>
                   </motion.div>
                 ) : null}
@@ -845,21 +878,28 @@ const ListFlights: React.FC = () => {
           </AnimatePresence>
 
           {/* Pagination */}
-          {(currentFlights.length > 0 || currentReturnFlights.length > 0) && (
+          {((showMainFlights && currentFlights.length > 0) || (showReturnFlights && currentReturnFlights.length > 0)) && (
             <motion.div
               className="flex justify-center mt-8"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <nav className="flex space-x-2 bg-white/5 rounded-full p-2">
+              <nav className="flex space-x-2 bg-white/5 rounded-full p-2 backdrop-blur-sm border border-white/10">
                 {Array.from(
-                  { length: Math.ceil((showMainFlights ? flights.length : returnFlights.length) / flightsPerPage) },
+                  { 
+                    length: Math.max(
+                      1, 
+                      Math.ceil(
+                        (showMainFlights ? flights.length : returnFlights.length) / flightsPerPage
+                      )
+                    ) 
+                  },
                   (_, i) => (
                     <motion.button
                       key={i}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className={`w-10 h-10 rounded-full transition-all ${
+                      className={`w-10 h-10 rounded-full transition-all flex items-center justify-center ${
                         currentPage === i + 1
                           ? 'bg-blue-500 text-white shadow-lg'
                           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
