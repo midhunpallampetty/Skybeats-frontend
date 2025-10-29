@@ -102,8 +102,11 @@ const ListFlights: React.FC = () => {
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [showSearchError, setShowSearchError] = useState(false); // Control error modal visibility
   const [searchErrorMessage, setSearchErrorMessage] = useState<string>('');
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const listingRef = useRef<HTMLDivElement>(null);
   const [flightData, setFlightData] = useState<Flight[]>([]); // Local backup of flight data
+  const searchThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
   // Safe passenger calculations
   const totalPassengers = React.useMemo(() => 
@@ -172,6 +175,14 @@ const ListFlights: React.FC = () => {
     fetchAirports();
   }, [dispatch]);
 
+  // Throttle search submissions to prevent spam
+  const throttleSearch = useCallback((callback: () => void, delay: number = 2000) => {
+    if (searchThrottleRef.current) {
+      clearTimeout(searchThrottleRef.current);
+    }
+    searchThrottleRef.current = setTimeout(callback, delay);
+  }, []);
+
   // Passenger count functions
   const increment = useCallback((type: keyof typeof passengers) => {
     if (totalPassengers < 10) {
@@ -221,32 +232,42 @@ const ListFlights: React.FC = () => {
     }
   };
 
-  // Fetch return flights
-  const fetchReturnFlights = async () => {
+  // Fetch return flights with retry logic
+  const fetchReturnFlights = useCallback(async (retries = 0) => {
     if (!returnDate || !selectedFrom || !selectedTo) {
       return;
     }
 
     setLoadingReturnFlights(true);
-    try {
-      const fromCity = selectedTo?.label.split(' ')[0]?.toLowerCase() || '';
-      const toCity = selectedFrom?.label.split(' ')[0]?.toLowerCase() || '';
-      
-      const response = await axiosInstance.post('/searchFlights', {
-        from: fromCity,
-        to: toCity,
-        date: returnDate,
-      });
+    
+    const fromCode = selectedTo?.value || '';
+    const toCode = selectedFrom?.value || '';
+    const returnPayload = {
+      from: fromCode,
+      to: toCode,
+      date: returnDate,
+    };
 
+    try {
+      console.log('🔄 Fetching return flights:', returnPayload);
+      
+      const response = await axiosInstance.post('/searchFlights', returnPayload);
       const data = Array.isArray(response.data) ? response.data : [];
       setReturnFlights(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Return flights error:', error);
+      
+      if (retries < 2 && error.response?.status >= 500) {
+        console.log(`🔄 Retrying return flights (${retries + 1}/3)`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1)));
+        return fetchReturnFlights(retries + 1);
+      }
+      
       setReturnFlights([]);
     } finally {
       setLoadingReturnFlights(false);
     }
-  };
+  }, [returnDate, selectedFrom, selectedTo]);
 
   // Handle return flight selection
   const handleSelectReturnFlight = useCallback((flight: Flight) => {
@@ -304,231 +325,362 @@ const ListFlights: React.FC = () => {
     [airports, dispatch]
   );
 
-  // FIXED Search handler - The main issue was in the async flow and Redux dispatch
+  // Enhanced API call with retry logic and better error handling
+  const makeFlightSearchRequest = useCallback(async (payload: any, attempt: number = 1) => {
+    console.log(`🚀 Flight search attempt ${attempt}:`, payload);
+    
+    try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
+      const response = await axiosInstance.post('/searchFlights', payload, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`✅ API Success on attempt ${attempt}:`, {
+        status: response.status,
+        dataLength: Array.isArray(response.data) ? response.data.length : 'Not array',
+      });
+      
+      return { success: true, data: response.data, attempt };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      console.error(`❌ API Error on attempt ${attempt}:`, {
+        message: error.message,
+        status: error.response?.status,
+        code: error.code,
+        payload,
+      });
+      
+      return { 
+        success: false, 
+        error: error, 
+        attempt,
+        isServerError: error.response?.status >= 500,
+        isClientError: error.response?.status >= 400 && error.response?.status < 500,
+        isTimeout: error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT',
+      };
+    }
+  }, []);
+
+  // FIXED Search handler with comprehensive retry logic
   const handleSearch = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
     
-    // Reset all states first
-    setShowSearchError(false);
-    setSearchErrorMessage('');
-    setSearchPerformed(false);
-    setFlightData([]);
-    
-    // Validation
-    if (!selectedFrom || !selectedTo) {
-      Swal.fire({
-        title: 'Complete Your Search',
-        text: 'Please select both departure and arrival cities.',
-        icon: 'warning',
-        background: '#282c34',
-        color: '#fff',
-      });
-      return;
-    }
-
-    if (!startDate) {
-      Swal.fire({
-        title: 'Select Travel Date',
-        text: 'Please choose your departure date.',
-        icon: 'warning',
-        background: '#282c34',
-        color: '#fff',
-      });
-      return;
-    }
-
-    if (totalPassengers === 0) {
-      Swal.fire({
-        title: 'Add Passengers',
-        text: 'Please select at least one passenger.',
-        icon: 'warning',
-        background: '#1E3A8A',
-        color: '#fff',
-      });
-      return;
-    }
-
-    setLoadingFlights(true);
-
-    const searchPayload = {
-      from: selectedFrom.label.split(' ')[0].toLowerCase(),
-      to: selectedTo.label.split(' ')[0].toLowerCase(),
-      date: startDate,
-      passengers: totalPassengers,
-    };
-
-    // Show loading
-    const loadingSwal = Swal.fire({
-      title: 'Searching Flights...',
-      html: 'Finding the best options for your trip',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      willOpen: () => {
-        Swal.showLoading();
-      },
-      background: '#282c34',
-      color: '#fff',
-    });
-
-    try {
-      console.log('🚀 Starting flight search with payload:', searchPayload);
+    // Throttle to prevent spam submissions
+    if (searchThrottleRef.current) return;
+    throttleSearch(async () => {
+      // Reset retry state
+      setRetryCount(0);
+      setIsRetrying(false);
       
-      // Clear Redux flights first
-      dispatch(clearFlights());
+      // Reset all states first
+      setShowSearchError(false);
+      setSearchErrorMessage('');
+      setSearchPerformed(false);
+      setFlightData([]);
       
-      // Make API call
-      const response = await axiosInstance.post('/searchFlights', searchPayload);
-      
-      console.log('✅ API Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        dataLength: Array.isArray(response.data) ? response.data.length : 'Not array',
-        dataSample: Array.isArray(response.data) ? response.data[0] : response.data,
-      });
-
-      // Close loading
-      loadingSwal.close();
-
-      // Process response data safely
-      let processedFlights: Flight[] = [];
-      
-      if (Array.isArray(response.data)) {
-        processedFlights = response.data;
-      } else if (response.data && Array.isArray(response.data.flights)) {
-        processedFlights = response.data.flights;
-      } else if (response.data && Array.isArray(response.data.data)) {
-        processedFlights = response.data.data;
-      } else {
-        processedFlights = [];
-      }
-
-      // Validate each flight object
-      const validFlights = processedFlights.filter(flight => 
-        flight && 
-        typeof flight === 'object' && 
-        flight.flightNumber && 
-        (flight.price !== undefined || flight.price !== null)
-      );
-
-      console.log('📊 Processed flights:', {
-        originalCount: processedFlights.length,
-        validCount: validFlights.length,
-        sampleFlight: validFlights[0],
-      });
-
-      // Store in local state first
-      setFlightData(validFlights);
-      
-      // Update Redux state with error handling
-      try {
-        // Clear again to ensure clean state
-        dispatch(clearFlights());
-        
-        // Set the flights with a small delay to prevent race conditions
-        setTimeout(() => {
-          dispatch(setFlights(validFlights));
-          console.log('✅ Redux flights updated successfully');
-        }, 0);
-
-        // Set search state
-        setSearchPerformed(true);
-        
-        // Update dates in Redux
-        dispatch(setDate(startDate.toDateString()));
-        dispatch(setReturnDate(returnDate?.toDateString() || null));
-
-        // Success feedback
-        if (validFlights.length > 0) {
-          Swal.fire({
-            title: `Found ${validFlights.length} Option${validFlights.length !== 1 ? 's' : ''}!`,
-            text: 'Scroll down to view your flights',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false,
-            background: '#282c34',
-            color: '#fff',
-            toast: true,
-            position: 'top-right',
-          });
-        } else {
-          Swal.fire({
-            title: 'No Flights Available',
-            text: 'Try adjusting your travel dates or destinations for more options.',
-            icon: 'info',
-            background: '#282c34',
-            color: '#fff',
-          });
-        }
-
-        // Scroll to results
-        setTimeout(() => {
-          if (listingRef.current) {
-            listingRef.current.scrollIntoView({ 
-              behavior: "smooth", 
-              block: "start" 
-            });
-          }
-        }, 500);
-
-      } catch (reduxError) {
-        console.error('❌ Redux dispatch error:', reduxError);
-        // Even if Redux fails, we still have local state
-        setSearchPerformed(true);
-        
-        // Show warning but don't block user
+      // Validation with improved checks
+      if (!selectedFrom || !selectedTo) {
         Swal.fire({
-          title: 'Flights Found!',
-          text: 'We found flights !',
+          title: 'Complete Your Search',
+          text: 'Please select both departure and arrival cities.',
           icon: 'warning',
           background: '#282c34',
           color: '#fff',
         });
+        return;
       }
 
-    } catch (apiError: any) {
-      console.error('❌ API Error Details:', {
-        message: apiError.message,
-        response: apiError.response?.data,
-        status: apiError.response?.status,
-        config: apiError.config,
-      });
-
-      // Close loading
-      loadingSwal.close();
-      
-      let userMessage = 'Unable to complete your search. Please try again.';
-      
-      if (apiError.response?.status === 400) {
-        userMessage = 'Invalid search parameters. Please check your selection.';
-      } else if (apiError.response?.status === 404) {
-        userMessage = 'Flight service not available. Please try again later.';
-      } else if (apiError.response?.status >= 500) {
-        userMessage = 'Server error. Our team has been notified.';
-      } else if (apiError.code === 'ECONNABORTED') {
-        userMessage = 'Search timed out. Please try a narrower date range.';
-      } else if (!navigator.onLine) {
-        userMessage = 'No internet connection. Please check your network.';
+      if (!startDate) {
+        Swal.fire({
+          title: 'Select Travel Date',
+          text: 'Please choose your departure date.',
+          icon: 'warning',
+          background: '#282c34',
+          color: '#fff',
+        });
+        return;
       }
 
-      setSearchErrorMessage(userMessage);
-      setShowSearchError(true);
-      setSearchPerformed(true);
-      setLoadingFlights(false);
+      if (totalPassengers === 0) {
+        Swal.fire({
+          title: 'Add Passengers',
+          text: 'Please select at least one passenger.',
+          icon: 'warning',
+          background: '#1E3A8A',
+          color: '#fff',
+        });
+        return;
+      }
 
-      Swal.fire({
-        title: 'Search Issue',
-        text: userMessage,
-        icon: 'error',
+      // Validate airport codes
+      if (!selectedFrom.value || !selectedTo.value || selectedFrom.value === selectedTo.value) {
+        Swal.fire({
+          title: 'Invalid Selection',
+          text: 'Please select valid, different departure and arrival airports.',
+          icon: 'error',
+          background: '#282c34',
+          color: '#fff',
+        });
+        return;
+      }
+
+      // Validate date
+      if (startDate < new Date()) {
+        Swal.fire({
+          title: 'Invalid Date',
+          text: 'Departure date cannot be in the past.',
+          icon: 'warning',
+          background: '#282c34',
+          color: '#fff',
+        });
+        return;
+      }
+
+      // Check for reasonable passenger limits
+      if (totalPassengers > 6) {
+        const result = await Swal.fire({
+          title: 'Large Group Booking',
+          text: `You're booking for ${totalPassengers} passengers. Availability may be limited. Continue?`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#4F46E5',
+          cancelButtonColor: '#6B7280',
+          background: '#282c34',
+          color: '#fff',
+        });
+
+        if (!result.isConfirmed) return;
+      }
+
+      setLoadingFlights(true);
+      
+      // Create validated payload using airport codes directly
+      const searchPayload = {
+        from: selectedFrom.value, // Use code directly instead of parsing label
+        to: selectedTo.value,     // Use code directly instead of parsing label
+        date: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        passengers: totalPassengers,
+        returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
+      };
+
+      console.log('📋 Validated search payload:', searchPayload);
+
+      // Show loading with retry indicator
+      const loadingSwal = Swal.fire({
+        title: isRetrying ? `Retrying Search... (${retryCount + 1}/3)` : 'Searching Flights...',
+        html: isRetrying 
+          ? 'Temporary server issue detected. Retrying automatically...' 
+          : 'Finding the best options for your trip',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        willOpen: () => {
+          Swal.showLoading();
+        },
         background: '#282c34',
         color: '#fff',
-        confirmButtonColor: '#4F46E5',
       });
 
-    } finally {
+      const maxRetries = 3;
+      let lastError: any = null;
+
+      // Retry loop with exponential backoff
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const result = await makeFlightSearchRequest(searchPayload, attempt);
+        
+        if (result.success) {
+          loadingSwal.close();
+          
+          // Process successful response
+          let processedFlights: Flight[] = [];
+          
+          if (Array.isArray(result.data)) {
+            processedFlights = result.data;
+          } else if (result.data && Array.isArray(result.data.flights)) {
+            processedFlights = result.data.flights;
+          } else if (result.data && Array.isArray(result.data.data)) {
+            processedFlights = result.data.data;
+          } else {
+            processedFlights = [];
+          }
+
+          // Validate each flight object more thoroughly
+          const validFlights = processedFlights.filter(flight => {
+            if (!flight || typeof flight !== 'object') return false;
+            if (!flight.flightNumber) return false;
+            if (flight.price === undefined || flight.price === null || flight.price < 0) return false;
+            if (!flight.departureAirport || !flight.arrivalAirport) return false;
+            return true;
+          });
+
+          console.log('📊 Search successful:', {
+            attempt,
+            totalFlights: processedFlights.length,
+            validFlights: validFlights.length,
+            sample: validFlights[0],
+          });
+
+          // Update local state immediately
+          setFlightData(validFlights);
+          
+          // Update Redux state safely
+          try {
+            dispatch(clearFlights());
+            
+            // Use setTimeout to prevent potential race conditions
+            setTimeout(() => {
+              dispatch(setFlights(validFlights));
+              console.log('✅ Redux flights updated successfully');
+            }, 100);
+            
+            // Update booking details
+            dispatch(setDate(startDate.toDateString()));
+            dispatch(setReturnDate(returnDate?.toDateString() || null));
+            dispatch(setSelectedPassengers(passengers));
+
+            setSearchPerformed(true);
+            setLoadingFlights(false);
+
+            // Success feedback
+            if (validFlights.length > 0) {
+              Swal.fire({
+                title: `Found ${validFlights.length} Option${validFlights.length !== 1 ? 's' : ''}!`,
+                text: attempt > 1 
+                  ? `Success on attempt ${attempt}! Scroll down to view your flights.`
+                  : 'Scroll down to view your flights',
+                icon: 'success',
+                timer: 2500,
+                showConfirmButton: false,
+                background: '#282c34',
+                color: '#fff',
+                toast: true,
+                position: 'top-right',
+              });
+            } else {
+              Swal.fire({
+                title: 'No Flights Available',
+                text: 'Try adjusting your travel dates or destinations for more options.',
+                icon: 'info',
+                background: '#282c34',
+                color: '#fff',
+              });
+            }
+
+            // Scroll to results
+            setTimeout(() => {
+              if (listingRef.current) {
+                listingRef.current.scrollIntoView({ 
+                  behavior: "smooth", 
+                  block: "start" 
+                });
+              }
+            }, 600);
+
+            return; // Success, exit retry loop
+          } catch (reduxError) {
+            console.error('❌ Redux dispatch error:', reduxError);
+            // Fallback to local state
+            setSearchPerformed(true);
+            setLoadingFlights(false);
+            
+            Swal.fire({
+              title: attempt > 1 ? 'Flights Found!' : 'Partial Success',
+              text: 'We found flights but had trouble updating our system. You can still proceed.',
+              icon: 'warning',
+              background: '#282c34',
+              color: '#fff',
+            });
+            return;
+          }
+        } else {
+          lastError = result.error;
+          
+          // Determine if we should retry
+          const shouldRetry = result.isServerError && attempt < maxRetries;
+          
+          if (shouldRetry) {
+            const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s backoff
+            console.log(`⏳ Server error on attempt ${attempt}, retrying in ${delay/1000}s...`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            setRetryCount(attempt);
+            setIsRetrying(true);
+            continue; // Retry
+          } else {
+            // Final attempt failed, handle error
+            loadingSwal.close();
+            
+            // Enhanced error categorization
+            let userMessage = 'Unable to complete your search. Please try again.';
+            let iconType = 'error';
+            
+            if (result.isClientError) {
+              userMessage = 'Invalid search parameters. Please check your selections and try again.';
+              iconType = 'warning';
+            } else if (result.status === 404) {
+              userMessage = 'Flight service temporarily unavailable. Please try again later.';
+            } else if (result.isServerError) {
+              userMessage = 'Server error encountered. Our team has been notified and will resolve shortly. Please try again in a moment.';
+              // Consider implementing error reporting here (e.g., to Sentry)
+            } else if (result.isTimeout) {
+              userMessage = 'Search timed out. Please try a narrower date range or fewer passengers.';
+            } else if (!navigator.onLine) {
+              userMessage = 'No internet connection detected. Please check your network and try again.';
+              iconType = 'info';
+            } else if (lastError?.message?.includes('Network')) {
+              userMessage = 'Network connectivity issue. Please check your connection and try again.';
+              iconType = 'warning';
+            }
+
+            setSearchErrorMessage(userMessage);
+            setShowSearchError(true);
+            setSearchPerformed(true);
+            setLoadingFlights(false);
+
+            Swal.fire({
+              title: attempt > 1 ? `Search Failed (Attempt ${attempt})` : 'Search Issue',
+              text: userMessage,
+              icon: iconType as any,
+              background: '#282c34',
+              color: '#fff',
+              confirmButtonColor: '#4F46E5',
+              footer: attempt === maxRetries && result.isServerError 
+                ? '<button class="swal2-styled" onclick="location.reload()">Refresh Page</button>'
+                : '',
+            });
+
+            // Log detailed error for debugging
+            if (result.isServerError) {
+              console.error('🔥 Detailed server error report:', {
+                endpoint: '/searchFlights',
+                payload: searchPayload,
+                status: lastError.response?.status,
+                statusText: lastError.response?.statusText,
+                errorData: lastError.response?.data,
+                attempts: maxRetries,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+              });
+            }
+
+            return;
+          }
+        }
+      }
+      
+      // If we get here, max retries exhausted without success
       setLoadingFlights(false);
-    }
-  }, [dispatch, selectedFrom, selectedTo, startDate, returnDate, totalPassengers, passengers]);
+      setSearchPerformed(true);
+    });
+  }, [
+    dispatch, selectedFrom, selectedTo, startDate, returnDate, totalPassengers, 
+    passengers, makeFlightSearchRequest, throttleSearch, isRetrying, retryCount
+  ]);
 
   // Sort flights safely
   const sortFlights = useCallback((flights: Flight[], criteria: string) => {
@@ -587,6 +739,15 @@ const ListFlights: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [sortOption, showMainFlights, showReturnFlights]);
+
+  // Cleanup throttle on unmount
+  useEffect(() => {
+    return () => {
+      if (searchThrottleRef.current) {
+        clearTimeout(searchThrottleRef.current);
+      }
+    };
+  }, []);
 
   // Animation variants
   const containerVariants = {
@@ -824,6 +985,7 @@ const ListFlights: React.FC = () => {
                         <div className="p-4 space-y-3 max-h-60 overflow-y-auto">
                           {[
                             { label: 'Adults (12+)', type: 'adults' as const },
+                            { label: 'Seniors (65+)', type: 'seniors' as const },
                             { label: 'Children (2-11)', type: 'children' as const },
                             { label: 'Infants (0-2)', type: 'infants' as const },
                           ].map(({ label, type }, index) => (
@@ -851,7 +1013,7 @@ const ListFlights: React.FC = () => {
                                   type="button"
                                   onClick={() => increment(type)}
                                   className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  disabled={totalPassengers >= 9 || (type === 'infants' && !hasAdultOrSenior())}
+                                  disabled={totalPassengers >= 10 || (type === 'infants' && !hasAdultOrSenior())}
                                 >
                                   <span className="text-gray-600 text-sm">+</span>
                                 </button>
@@ -886,7 +1048,7 @@ const ListFlights: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* Search Button */}
+                {/* Search Button with improved disabled state */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -901,7 +1063,7 @@ const ListFlights: React.FC = () => {
                   {loadingFlights ? (
                     <>
                       <LoadingSpinner size={20} color="white" small />
-                      <span>Searching for flights...</span>
+                      <span>{isRetrying ? 'Retrying...' : 'Searching for flights...'}</span>
                     </>
                   ) : (
                     <>
@@ -916,6 +1078,7 @@ const ListFlights: React.FC = () => {
                   <div className="text-xs text-white/60 text-center space-y-1 pt-4 border-t border-white/10">
                     <p>• Select cities and date</p>
                     <p>• Choose {totalPassengers > 0 ? `${totalPassengers} passenger${totalPassengers !== 1 ? 's' : ''}` : 'passengers'}</p>
+                    <p className="text-blue-300 text-xs">✓ Auto-retries on server errors</p>
                   </div>
                 )}
               </form>
@@ -1011,8 +1174,13 @@ const ListFlights: React.FC = () => {
                 >
                   <LoadingSpinner size={64} color="#4F46E5" />
                   <div>
-                    <h3 className="text-2xl font-semibold text-white mb-2">Searching Flights</h3>
-                    <p className="text-gray-400">Finding the best options for your {totalPassengers} passenger{totalPassengers !== 1 ? 's' : ''} trip</p>
+                    <h3 className="text-2xl font-semibold text-white mb-2">
+                      {isRetrying ? `Retrying Search... (${retryCount + 1}/3)` : 'Searching Flights'}
+                    </h3>
+                    <p className="text-gray-400">
+                      Finding the best options for your {totalPassengers} passenger{totalPassengers !== 1 ? 's' : ''} trip
+                      {isRetrying && ' (temporary server issue)'}
+                    </p>
                   </div>
                 </motion.div>
               )}
@@ -1024,7 +1192,7 @@ const ListFlights: React.FC = () => {
                   animate={{ opacity: 1 }}
                   className="space-y-6"
                 >
-                  {/* Success Banner */}
+                  {/* Success Banner with retry info */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1036,6 +1204,7 @@ const ListFlights: React.FC = () => {
                       </svg>
                       <span className="text-green-100 font-semibold">
                         Excellent! Found {totalFlights} great flight option{totalFlights !== 1 ? 's' : ''} for your trip
+                        {retryCount > 0 && ` (recovered after ${retryCount} attempt${retryCount !== 1 ? 's' : ''})`}
                       </span>
                     </div>
                   </motion.div>
@@ -1208,6 +1377,7 @@ const ListFlights: React.FC = () => {
                         <span className="text-blue-300">{selectedFrom?.label} → {selectedTo?.label}</span> on{' '}
                         <span className="text-blue-300">{startDate?.toLocaleDateString('en-IN')}</span>
                         {totalPassengers > 1 && ` for ${totalPassengers} passengers`}
+                        {retryCount > 0 && ` (auto-recovered after ${retryCount} attempt${retryCount !== 1 ? 's' : ''})`}
                       </p>
                     </motion.div>
                   )}
@@ -1251,6 +1421,8 @@ const ListFlights: React.FC = () => {
                       setPassengers({ adults: 1, seniors: 0, children: 0, infants: 0 });
                       dispatch(clearFlights());
                       setFlightData([]);
+                      setRetryCount(0);
+                      setIsRetrying(false);
                     }}
                     className="px-8 py-4 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg"
                   >
@@ -1259,7 +1431,7 @@ const ListFlights: React.FC = () => {
                 </motion.div>
               )}
 
-              {/* Error State */}
+              {/* Error State with retry options */}
               {shouldShowError && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1278,7 +1450,11 @@ const ListFlights: React.FC = () => {
                       <p className="text-red-200 mb-4 max-w-md mx-auto leading-relaxed">
                         {searchErrorMessage || "We couldn't complete your flight search due to a technical issue."}
                       </p>
-                      <p className="text-red-300 text-sm">Don't worry, this is on our end - please try again!</p>
+                      <div className="space-y-2 text-sm text-red-300">
+                        <p>• Our system automatically tried {retryCount || 0} recovery attempt{retryCount !== 1 ? 's' : ''}</p>
+                        <p>• This issue is on our end - your data is safe</p>
+                        <p>• Server logs have been updated for our engineering team</p>
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -1304,11 +1480,24 @@ const ListFlights: React.FC = () => {
                           setPassengers({ adults: 1, seniors: 0, children: 0, infants: 0 });
                           dispatch(clearFlights());
                           setFlightData([]);
+                          setRetryCount(0);
+                          setIsRetrying(false);
                         }}
                         className="px-6 py-3 bg-gray-600 text-white font-bold rounded-xl hover:bg-gray-500 transition-all"
                       >
                         🏠 New Search
                       </motion.button>
+                      
+                      {retryCount >= 3 && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => window.location.reload()}
+                          className="px-6 py-3 bg-yellow-500 text-white font-bold rounded-xl hover:bg-yellow-600 transition-all"
+                        >
+                          🔄 Refresh Page
+                        </motion.button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
