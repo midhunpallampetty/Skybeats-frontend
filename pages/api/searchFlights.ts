@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { GraphQLClient, gql } from 'graphql-request';
 import { Flight } from '../../interfaces/flight';
 
-// Retry function with exponential backoff
+// Retry function (unchanged)
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 10,
@@ -17,22 +17,22 @@ async function retryWithBackoff<T>(
     } catch (error) {
       lastError = error;
       attempt++;
+      console.log(`Retry attempt ${attempt}/${maxRetries} failed:`, error);
 
       if (attempt >= maxRetries) {
         throw lastError;
       }
 
-      // Exponential backoff with jitter
       const delayMs = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100;
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
 
-  throw lastError; // Fallback (unreachable)
+  throw lastError;
 }
 
-// Custom fetch with timeout for GraphQLClient
-const createFetchWithTimeout = (timeoutMs: number = 5000) => 
+// Custom fetch with shorter timeout
+const createFetchWithTimeout = (timeoutMs: number = 3000) =>  // Reduced to 3s
   async (input: RequestInfo | URL, init?: RequestInit) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -51,14 +51,15 @@ const searchFlights = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const { from, to } = req.body;
-  console.log(req.body);
+  console.log('Request body:', req.body);
+  console.log('Start time:', new Date().toISOString());
 
   if (!from || !to) {
     return res.status(400).json({ message: 'From and To airports are required' });
   }
 
   const graphQLClient = new GraphQLClient(process.env.GRAPHQL_ENDPOINT!, {
-    fetch: createFetchWithTimeout(5000), // 5s timeout per request
+    fetch: createFetchWithTimeout(3000),
   });
 
   const query = gql`
@@ -77,35 +78,33 @@ const searchFlights = async (req: NextApiRequest, res: NextApiResponse) => {
     }
   `;
 
-  console.log(from, to);
-
   const executeSearch = async () => {
+    console.log('Executing GraphQL query...');
+    const startQuery = Date.now();
     const variables = { fromAirport: from, toAirport: to };
     const data: any = await graphQLClient.request(query, variables);
+    console.log(`Query took ${Date.now() - startQuery}ms`);
     return data.searchFlights as Flight[];
   };
 
   try {
-    // Retry up to 10 times with backoff
     const flights: Flight[] = await retryWithBackoff(executeSearch, 10);
-    
-    // Return empty array if no flights found (treat as success)
+    console.log('Success - Flights found:', flights?.length || 0);
     res.status(200).json(flights || []);
   } catch (error: unknown) {
-    console.error('Error searching flights after retries:', error);
+    console.error('Final error after retries:', error);
+    console.log('End time:', new Date().toISOString());
     
-    if (error instanceof Error && 'name' in error && error.name === 'AbortError') {
-      res.status(408).json({ message: 'Request timeout - GraphQL endpoint too slow' });
+    if (error instanceof Error && error.name === 'AbortError') {
+      res.status(408).json({ message: 'GraphQL endpoint timeout - try again later' });
     } else {
       res.status(500).json({ 
-        message: 'No flights found or service unavailable after multiple attempts',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Flight search unavailable after retries',
+        attempts: 10,
+        error: error instanceof Error ? error.message : 'Unknown'
       });
     }
   }
 };
 
 export default searchFlights;
-
-// Configure max duration for Vercel (add to top of file or vercel.json)
-export const maxDuration = 55; // Up to 60s on Hobby with Fluid Compute
