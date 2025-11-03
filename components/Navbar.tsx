@@ -75,15 +75,15 @@ export default function Navbar() {
         { name: 'All Cargos', href: '/user/cargo/allCargoRequests' },
       ],
     },
-    {
-      name: 'Hotels',
-      href: '/hotel',
-      icon: '🏨',
-      submenu: [
-        { name: 'Book Hotels', href: '/hotel' },
-        { name: 'Booking History', href: '/hotel/hotelHistory' },
-      ],
-    },
+    // {
+    //   name: 'Hotels',
+    //   href: '/hotel',
+    //   icon: '🏨',
+    //   submenu: [
+    //     { name: 'Book Hotels', href: '/hotel' },
+    //     { name: 'Booking History', href: '/hotel/hotelHistory' },
+    //   ],
+    // },
     {
       name: 'Careers',
       href: '/user/careers',
