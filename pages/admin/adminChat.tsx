@@ -32,7 +32,7 @@ const AdminChat: React.FC = () => {
   // Initialize Socket.io connection
   useEffect(() => {
 
-    const socketConnection: Socket = io('https://www.skybeats.site'); // Replace with your backend Socket.io URL
+    const socketConnection: Socket = io('https://www.skybeats.upskillr.online'); // Replace with your backend Socket.io URL
 
 
     setSocket(socketConnection);

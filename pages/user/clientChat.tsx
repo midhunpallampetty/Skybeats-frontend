@@ -44,11 +44,11 @@ const UserChat = () => {
 
   useEffect(() => {
 
-    const socketConnection: Socket = io('https://www.skybeats.site'); // Replace with your backend Socket.io URL
+    const socketConnection: Socket = io('https://www.skybeats.upskillr.online'); // Replace with your backend Socket.io URL
     setSocket(socketConnection);
 
     try {
-      const socketConnection: Socket = io("http://localhost:3300")
+      const socketConnection: Socket = io("https://skybeatscloud.upskillr.online")
       setSocket(socketConnection)
 
 
