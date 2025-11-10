@@ -258,13 +258,13 @@ const handleSignin = async (event: React.FormEvent<HTMLFormElement>) => {
       c0,18.0,4.5,35.0,12.0,50.5l42.7-16.5z"
     />
   
-    <path
+    {/* <path
       fill="#EA4335"
       d="M131.2,50c22.0,0,41.5,7.5,56.5,22.0l42.5-42.5C196.7,11.0,166.7,0,131.2,0C75.7,0,31.0,28.5,8.5,68.0
       l42.7,36.5C60.7,75.0,92.0,50,131.2,50z"
     />
   </svg>
-  <span>SignIn With Google</span>
+  <span>SignIn With Google</span> */}
 </button>
               </div>
               <div className="text-[10px] font-medium text-gray-500 dark:text-gray-300">
