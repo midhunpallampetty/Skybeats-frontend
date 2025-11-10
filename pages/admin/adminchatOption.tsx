@@ -11,7 +11,7 @@ interface MessageData {
 }
 
 // Define the socket URL
-const socket: Socket = socketIOClient('https://www.skybeats.site/'); // Ensure this matches your server URL
+const socket: Socket = socketIOClient('https://skybeats.upskillr.online/'); // Ensure this matches your server URL
 
 const AdminChat: React.FC = () => {
     const [message, setMessage] = useState<string>('');  // State to hold the message

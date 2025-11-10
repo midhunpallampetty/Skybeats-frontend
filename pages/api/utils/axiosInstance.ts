@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 
 const axiosInstance = axios.create({
-  baseURL: "https://www.skybeats.site/api/",
+  baseURL: "https://skybeats.upskillr.online/api/",
   withCredentials: true,
 });
 
