@@ -229,16 +229,16 @@ const handleSignin = async (event: React.FormEvent<HTMLFormElement>) => {
                 {error && (
                   <p className="text-red-500 mb-4">Error: {error.message}</p>
                 )}
-<button
+{/* <button
   className="flex items-center justify-center bg-transparent border font-semibold border-gray-800 w-full h-10 rounded-lg space-x-2 hover:bg-gray-100"
   onClick={() => signIn('google')}
->
-  <svg
+> */}
+  {/* <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 256 262"
     width="20"
     height="20"
-  >
+  > */}
     
     <path
       fill="#4285F4"
